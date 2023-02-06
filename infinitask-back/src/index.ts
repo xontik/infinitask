@@ -6,6 +6,7 @@ import { koaBody } from 'koa-body';
 
 import './passport';
 import passport from 'koa-passport';
+import cors from '@koa/cors';
 
 const app = new Koa();
 const router = new Router();
@@ -24,7 +25,7 @@ app.use(koaBody());
 // app.use(session(app));
 app.use(passport.initialize());
 // app.use(passport.session());
-
+app.use(cors({ origin: '*' }));
 app.use(async (ctx, next) => {
   try {
     await next();
@@ -65,10 +66,13 @@ router.post(
 );
 
 router.get(
-  '/protected',
+  '/boards',
   passport.authenticate('jwt', { session: false }),
   async (ctx) => {
-    ctx.body = { user: ctx.state.user };
+    const boards = await prisma.board.findMany({
+      where: { authorId: ctx.state.user.id },
+    });
+    ctx.body = [...boards];
   }
 );
 
