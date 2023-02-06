@@ -7,7 +7,7 @@ interface Board {
 interface TasksState {
   boards: Board[];
 }
-export const useAuthStore = defineStore("auth", {
+export const useTasksStore = defineStore("tasks", {
   state: (): TasksState => ({
     boards: [],
   }),
@@ -15,6 +15,16 @@ export const useAuthStore = defineStore("auth", {
     async loadBoards() {
       const boards = (await api.get<Board[]>("/boards")).data;
       this.boards = boards;
+    },
+
+    async addBoard(title: string) {
+      const board = (await api.post<Board>("/boards", { title })).data;
+      this.boards.push(board);
+    },
+
+    async removeBoard(id: number) {
+      await api.delete(`/boards/${id}`);
+      this.boards = this.boards.filter((board) => board.id !== id);
     },
   },
 });

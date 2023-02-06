@@ -65,6 +65,22 @@ router.post(
   }
 );
 
+router.post(
+  '/boards',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const { title } = ctx.request.body;
+    const { id: authorId } = ctx.state.user;
+    const board = await prisma.board.create({
+      data: {
+        title,
+        authorId,
+      },
+    });
+    ctx.body = board;
+  }
+);
+
 router.get(
   '/boards',
   passport.authenticate('jwt', { session: false }),
@@ -76,6 +92,15 @@ router.get(
   }
 );
 
+router.delete(
+  '/boards/:id',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const { id } = ctx.params;
+    await prisma.board.delete({ where: { id: Number(id) } });
+    ctx.status = 200;
+  }
+);
 app.use(router.routes()).use(router.allowedMethods());
 
 app.listen(3000, () =>
