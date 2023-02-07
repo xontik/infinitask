@@ -16,7 +16,7 @@ export default defineComponent({
       loading.value = true;
       try {
         await authStore.login(username.value, password.value);
-        await router.push({ name: "home" });
+        await router.push({ name: "dashboard" });
       } finally {
         loading.value = false;
       }
@@ -33,29 +33,46 @@ export default defineComponent({
 </script>
 
 <template>
-  <v-card class="mx-auto" width="400" prepend-icon="mdi-person">
-    <template v-slot:title>Login</template>
-
-    <v-card-text>
-      <v-form>
-        <v-text-field
-          v-model="username"
-          label="Username"
-          prepend-icon="mdi-account"
-          type="text"
-          required
-        ></v-text-field>
-        <v-text-field
-          v-model="password"
-          label="Password"
-          prepend-icon="mdi-lock"
-          type="password"
-          required
-        ></v-text-field>
-        <v-btn @click="login" color="primary" block :loading="loading"
-          >Login</v-btn
-        >
-      </v-form>
-    </v-card-text>
-  </v-card>
+  <Card>
+    <template #title> Signin </template>
+    <template #content>
+      <div class="form-container" @keyup.enter="login">
+        <span class="p-input-icon-left">
+          <i class="pi pi-user"></i>
+          <InputText
+            v-model="username"
+            placeholder="Username"
+            type="text"
+            required
+          />
+        </span>
+        <span class="p-input-icon-left">
+          <i class="pi pi-lock"></i>
+          <InputText
+            v-model="password"
+            placeholder="Password"
+            type="password"
+            required
+          />
+        </span>
+      </div>
+    </template>
+    <template #footer>
+      <Button
+        @click="login"
+        icon="pi pi-check"
+        iconPos="right"
+        :loading="loading"
+        label="Signin"
+      />
+    </template>
+  </Card>
 </template>
+
+<style scoped>
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+</style>

@@ -91,6 +91,33 @@ router.get(
     ctx.body = [...boards];
   }
 );
+router.get(
+  '/boards/:id',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const board = await prisma.board.findUnique({
+      where: { id: Number(ctx.params.id) },
+    });
+    ctx.body = board;
+  }
+);
+
+router.put(
+  '/boards/:id',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const { id } = ctx.params;
+    const { title } = ctx.request.body;
+
+    const board = await prisma.board.update({
+      data: {
+        title,
+      },
+      where: { id: Number(id) },
+    });
+    ctx.body = board;
+  }
+);
 
 router.delete(
   '/boards/:id',
@@ -101,6 +128,63 @@ router.delete(
     ctx.status = 200;
   }
 );
+
+router.get(
+  '/tasks',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const tasks = await prisma.task.findMany({
+      where: { boardId: Number(ctx.query.boardId) },
+    });
+    ctx.body = [...tasks];
+  }
+);
+
+router.post(
+  '/tasks',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const { title, boardId } = ctx.request.body;
+    const task = await prisma.task.create({
+      data: {
+        title,
+        boardId,
+        content: '',
+        completed: false,
+        authorId: ctx.state.user.id,
+      },
+    });
+    ctx.body = task;
+  }
+);
+
+router.put(
+  '/tasks/:id',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const { id } = ctx.params;
+    const { title } = ctx.request.body;
+
+    const task = await prisma.task.update({
+      data: {
+        title,
+      },
+      where: { id: Number(id) },
+    });
+    ctx.body = task;
+  }
+);
+
+router.delete(
+  '/tasks/:id',
+  passport.authenticate('jwt', { session: false }),
+  async (ctx) => {
+    const { id } = ctx.params;
+    await prisma.task.delete({ where: { id: Number(id) } });
+    ctx.status = 200;
+  }
+);
+
 app.use(router.routes()).use(router.allowedMethods());
 
 app.listen(3000, () =>

@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import jwt_decode from "jwt-decode";
 import { api } from "../lib/Api";
-
 interface User {
   username: string;
   email: string;
@@ -28,4 +27,5 @@ export const useAuthStore = defineStore("auth", {
       this.user = jwt_decode(data.token) as any;
     },
   },
+  persist: true,
 });
