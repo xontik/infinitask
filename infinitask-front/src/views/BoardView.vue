@@ -1,9 +1,9 @@
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, reactive } from "vue";
+import { defineComponent, onMounted, ref, computed, nextTick } from "vue";
 import { useTasksStore } from "../stores/tasks";
 import { storeToRefs } from "pinia";
 import TaskNode from "@/components/TaskNode.vue";
-import { mapTree, findUpDown } from "../lib/tree";
+import { mapTree } from "../lib/tree";
 
 export default defineComponent({
   name: "BoardView",
@@ -11,46 +11,34 @@ export default defineComponent({
     const tasksStore = useTasksStore();
     const { currentBoard: board, tasksTree } = storeToRefs(tasksStore);
     const newTitle = ref("");
-    const expandedKeys = reactive({});
-    const editingKeys = reactive({});
+    const expandedKeys = ref({});
+    const editingKey = ref(null);
     const addTask = () => {
       tasksStore.addTask(board.value.id, newTitle.value);
       newTitle.value = "";
     };
     const computedTasksTree = computed(() => {
-      return mapTree(tasksTree.value, (node) => {
-        return {
-          key: node.id,
-          label: node.title,
-          data: {
-            ...node,
-            editing: !!editingKeys[node.id],
-          },
-        };
-      });
+      return tasksTree.value && tasksTree.value.children.length > 0
+        ? mapTree(tasksTree.value, (node) => {
+            return {
+              key: node.id,
+              label: node.title,
+              data: {
+                ...node,
+                editing: editingKey.value === node.id,
+              },
+            };
+          }).children
+        : [];
     });
     onMounted(async () => {
       await tasksStore.loadTasks(board.value.id);
     });
-    const moveDown = (key) => {
-      const { down, up } = findUpDown(computedTasksTree.value[0], key, "key");
-      console.log(`up: ${up}, down: ${down}`);
-
-      if (down === -1) return;
-      expandedKeys[key] = true;
-      editingKeys[down] = true;
-      editingKeys[key] = false;
-    };
-
-    const moveUp = (key) => {
-      const { up, down } = findUpDown(computedTasksTree.value[0], key, "key");
-      console.log(`up: ${up}, down: ${down}`);
-
-      if (up === -1) return;
-
-      expandedKeys[up] = true;
-      editingKeys[up] = true;
-      editingKeys[key] = false;
+    const moveTo = async (from, to) => {
+      if (to === -1) return;
+      expandedKeys[from] = true;
+      await nextTick();
+      editingKey.value = to;
     };
 
     return {
@@ -59,15 +47,19 @@ export default defineComponent({
       newTitle,
       expandedKeys,
       addTask,
-      editingKeys,
-      select: (a) => {
-        editingKeys[a.key] = true;
+      editingKey,
+      select: async (a) => {
+        console.log("select", a);
+        editingKey.value = null;
+        nextTick(() => {
+          editingKey.value = a.key;
+        });
       },
       close: (a) => {
-        editingKeys[a.key] = false;
+        console.log("close", a);
+        // editingKey.value = null;
       },
-      moveDown,
-      moveUp,
+      moveTo,
     };
   },
   components: { TaskNode },
@@ -93,8 +85,7 @@ export default defineComponent({
         <template #default="slotProps">
           <TaskNode
             v-model="slotProps.node.data"
-            @move-down="moveDown(slotProps.node.key)"
-            @move-up="moveUp(slotProps.node.key)"
+            @move-to="(to) => moveTo(slotProps.node.key, to)"
             @close="close(slotProps.node.key)"
           />
         </template>

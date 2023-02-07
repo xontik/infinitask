@@ -27,8 +27,8 @@ export const useTasksStore = defineStore("tasks", {
     tasks: [],
   }),
   getters: {
-    tasksTree(): TaskNode[] {
-      return unflatten(this.tasks);
+    tasksTree() {
+      return this.tasks.length ? unflatten(this.tasks) : null;
     },
   },
   actions: {

@@ -1,63 +1,121 @@
-export const unflatten = (items: any[]) => {
-  const tree = [] as any[];
+export interface Tree {
+  map: Map;
+  tree: any;
+}
+
+export const unflatten = (items: any[]): Tree => {
   const map = new Map();
   for (const item of items) {
     map.set(item.id, { ...item, children: [] });
   }
 
+  const topLevel = {
+    id: null,
+    children: [],
+    parentId: null,
+  };
   map.forEach((item) => {
     if (item.parentId) {
       const parent = map.get(item.parentId);
       if (parent) {
-        parent.children.push(item);
+        parent.children.push({ ...item });
       }
     } else {
-      tree.push(item);
+      topLevel.children.push(item);
     }
   });
-  return tree;
+  console.log("computedTasksTree recomputed");
+
+  return mapTree(addParentRelation(topLevel, null), (node) => {
+    const { up, down } = findUpDown(node, node.id);
+    node.up = up;
+    node.down = down;
+    return node;
+  });
+};
+export const addParentRelation = (node: any, parent: any) => {
+  node.parent = parent;
+  node.children = node.children.map((child) => addParentRelation(child, node));
+  return node;
+};
+export const mapTree = (node, fn: (node: any) => any) => {
+  return {
+    ...fn(node),
+    children: node.children
+      ? node.children.map((item) => mapTree(item, fn))
+      : [],
+  };
 };
 
-export const mapTree = (tree: any[], fn: (node: any) => any) => {
-  return tree.map((node) => {
-    return {
-      ...fn(node),
-      children: node.children ? mapTree(node.children, fn) : [],
-    };
-  });
+export const lastChild = (node: any) => {
+  if (node.children.length === 0) {
+    return node;
+  } else {
+    return lastChild(node.children[node.children.length - 1]);
+  }
+};
+
+export const nextSiblingDescending = (node: any) => {
+  const { parent } = node;
+  if (!parent) {
+    return null;
+  }
+  const indexInParent = parent.children.findIndex(
+    (child) => child.id === node.id
+  );
+  if (indexInParent === -1) {
+    throw new Error("indexInParent is undefined");
+  }
+  if (indexInParent === parent.children.length - 1) {
+    return nextSiblingDescending(parent);
+  }
+  return parent.children[indexInParent + 1];
 };
 
 export const findUpDown = (
-  node: any,
-  key: number,
-  access: string
-): { up: number; down: number; indexFound: number } | null => {
-  if (node[access] === key) {
-    return {
-      up: -1,
-      down: node.children.length > 0 ? node.children[0][access] : -1,
-      indexFound: -1,
-    };
+  node: TaskNode,
+  key: number
+): { up: number; down: number } | null => {
+  if (node.id === key) {
+    let up = null;
+    let down = null;
+
+    const { parent } = node;
+
+    if (!parent) {
+      if (node.children.length > 0) {
+        down = node.children[0].id;
+      }
+      return { up, down };
+    }
+
+    const indexInParent = parent?.children.findIndex(
+      (child) => child.id === node.id
+    );
+
+    if (indexInParent === -1) {
+      throw new Error("indexInParent is undefined");
+    }
+
+    if (indexInParent === 0) {
+      up = parent.id;
+    } else {
+      up = lastChild(parent.children[indexInParent - 1]).id;
+    }
+    if (node.children.length > 0) {
+      down = node.children[0].id;
+    } else if (indexInParent < parent.children.length - 1) {
+      down = parent.children[indexInParent + 1].id;
+    } else {
+      down = nextSiblingDescending(parent)?.id || null;
+    }
+    return { up, down };
   }
-
-  let result = null;
-  node.children.some((child: any, index: number) => {
-    result = findUpDown(child, key, access, node[access]);
-    if (!result) return null;
-
-    if (result.down === -1) {
-      result.down =
-        index < node.children.length - 1
-          ? node.children[index + 1][access]
-          : -1;
+  for (const child of node.children) {
+    const result = findUpDown(child, key);
+    if (result) {
+      return result;
     }
-    if (result.up === -1) {
-      result.up =
-        node.children.length > 0
-          ? node.children[node.children.length - 1][access]
-          : node[access];
-    }
-    return true;
-  });
-  return result;
+  }
+  return null;
 };

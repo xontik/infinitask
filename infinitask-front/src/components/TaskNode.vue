@@ -9,7 +9,7 @@ export default defineComponent({
   props: {
     modelValue: { type: Object as PropType<TaskNode>, required: true },
   },
-  emits: ["update:modelValue", "move-up", "move-down", "close"],
+  emits: ["update:modelValue", "move-to", "close"],
   setup(props, { emit }) {
     const tasksStore = useTasksStore();
     const { modelValue } = toRefs(props);
@@ -42,12 +42,14 @@ export default defineComponent({
     };
 
     const moveUp = () => {
-      console.log("move up");
-      emit("move-up");
+      if (modelValue.value.up === null) return;
+      console.log("move up: ", modelValue.value.up);
+      emit("move-to", modelValue.value.up);
     };
     const moveDown = () => {
-      console.log("move down");
-      emit("move-down");
+      if (modelValue.value.down === null) return;
+      console.log("move down: ", modelValue.value.down);
+      emit("move-to", modelValue.value.down);
     };
     return {
       newTitle,
