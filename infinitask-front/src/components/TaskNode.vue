@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, ref, toRefs, nextTick, watch } from "vue";
+import { defineComponent, ref, toRefs, nextTick, watch, computed } from "vue";
 import type { PropType } from "vue";
 import { useTasksStore } from "../stores/tasks";
 import type { TaskNode } from "../stores/tasks";
@@ -8,16 +8,19 @@ export default defineComponent({
   name: "TaskNode",
   props: {
     modelValue: { type: Object as PropType<TaskNode>, required: true },
+    editingKey: { type: Number, required: true },
   },
-  emits: ["update:modelValue", "move-to", "close"],
+  emits: ["update:modelValue", "move-to", "close", "expand", "collapse"],
   setup(props, { emit }) {
     const tasksStore = useTasksStore();
-    const { modelValue } = toRefs(props);
+    const { modelValue, editingKey } = toRefs(props);
     const newTitle = ref("");
     const input = ref(null);
-
+    const editing = computed(() => {
+      return editingKey.value === modelValue.value.id;
+    });
     const updateTask = () => {
-      if (modelValue.value.editing === false) return;
+      if (editing.value === false) return;
       if (newTitle.value === "") return;
       if (newTitle.value === modelValue.value.title) return;
       emit("close");
@@ -27,38 +30,53 @@ export default defineComponent({
       tasksStore.removeTask(modelValue.value.id);
     };
     const open = async () => {
-      if (modelValue.value.editing !== true) return;
+      if (editing.value !== true) return;
       newTitle.value = modelValue.value.title;
       await nextTick();
       input.value.$el.focus();
     };
 
-    watch(modelValue, (newVal) => {
-      if (newVal.editing === true) {
+    watch(editing, (newVal) => {
+      if (newVal === true) {
         open();
       }
     });
 
     const close = () => {
-      if (modelValue.value.editing !== true) return;
-      console.log("internal close");
       emit("close");
     };
 
     const moveUp = () => {
       if (modelValue.value.up === null) return;
-      console.log("move up: ", modelValue.value.up);
       updateTask();
       emit("move-to", modelValue.value.up);
     };
     const moveDown = () => {
       if (modelValue.value.down === null) return;
-      console.log("move down: ", modelValue.value.down);
       updateTask();
       emit("move-to", modelValue.value.down);
     };
+    const left = (e) => {
+      e.preventDefault();
+      if (
+        modelValue.value.expanded === false ||
+        modelValue.value.children.length === 0
+      )
+        return false;
+      emit("collapse", modelValue.value.expanded);
+    };
+    const right = (e) => {
+      e.preventDefault();
+      if (
+        modelValue.value.expanded === true ||
+        modelValue.value.children.length === 0
+      )
+        return false;
+      emit("expand", modelValue.value.expanded);
+    };
     return {
       newTitle,
+      editing,
       input,
       removeTask,
       updateTask,
@@ -66,6 +84,8 @@ export default defineComponent({
       close,
       moveUp,
       moveDown,
+      left,
+      right,
     };
   },
 });
@@ -73,7 +93,7 @@ export default defineComponent({
 <template>
   <div class="task-node">
     <Inplace
-      :active="modelValue.editing"
+      :active="editing"
       @close="close"
       @open="open"
       class="inplace"
@@ -84,9 +104,14 @@ export default defineComponent({
       </template>
       <template #content>
         <InputText
+          class="title-input"
           v-model="newTitle"
           @keyup.enter="updateTask"
           @keydown.space.stop
+          @keydown.left.stop
+          @keydown.right.stop
+          @keydown.left.ctrl="left"
+          @keydown.right.ctrl="right"
           @blur="
             updateTask();
             close();
@@ -100,6 +125,8 @@ export default defineComponent({
       </template>
     </Inplace>
     {{ modelValue.id }}
+    {{ modelValue.expanded }} === up: {{ modelValue.up }} down:
+    {{ modelValue.down }}
     <Button
       @click="removeTask"
       tabindex="-1"
@@ -111,10 +138,17 @@ export default defineComponent({
 
 <style lang="scss">
 .task-node {
-  padding: 0.5rem;
+  height: 40px;
+  .title-input {
+    width: 100%;
+  }
+  .p-inplace-content {
+    padding: 0;
+    width: 100%;
+  }
+  padding: 0;
   border-radius: 0.25rem;
-  background-color: #f0f0f0;
-  margin: 0.5rem;
+  margin: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;

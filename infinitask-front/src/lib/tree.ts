@@ -24,7 +24,6 @@ export const unflatten = (items: any[]): Tree => {
       topLevel.children.push(item);
     }
   });
-  console.log("computedTasksTree recomputed");
 
   return addParentRelation(topLevel, null);
 };
@@ -43,7 +42,7 @@ export const mapTree = (node, fn: (node: any) => any) => {
 };
 
 export const lastChild = (node: any) => {
-  if (node.children.length === 0) {
+  if (node.children.length === 0 || node.expanded === false) {
     return node;
   } else {
     return lastChild(node.children[node.children.length - 1]);
@@ -76,7 +75,7 @@ export const findUpDown = (
   const { parent } = node;
 
   if (!parent) {
-    if (node.children.length > 0) {
+    if (node.expanded === true && node.children.length > 0) {
       down = node.children[0].id;
     }
     return { up, down };
@@ -95,7 +94,7 @@ export const findUpDown = (
   } else {
     up = lastChild(parent.children[indexInParent - 1]).id;
   }
-  if (node.children.length > 0) {
+  if (node.expanded === true && node.children.length > 0) {
     down = node.children[0].id;
   } else if (indexInParent < parent.children.length - 1) {
     down = parent.children[indexInParent + 1].id;
