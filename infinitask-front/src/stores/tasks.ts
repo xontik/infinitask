@@ -12,7 +12,6 @@ interface Task {
 }
 export interface TaskNode extends Task {
   children: TaskNode[];
-  editing: boolean;
 }
 
 interface TasksState {
@@ -82,9 +81,17 @@ export const useTasksStore = defineStore("tasks", {
       this.tasks = (await api.get(`/tasks`, { params: { boardId } })).data;
     },
 
-    async addTask(boardId: Number, title: string) {
-      const task = (await api.post<Task>("/tasks", { boardId, title })).data;
+    async addTask(
+      boardId: Number,
+      title: string,
+      parentId?: number
+    ): Promise<number> {
+      const task = (
+        await api.post<Task>("/tasks", { boardId, title, parentId })
+      ).data;
       this.tasks.push(task);
+
+      return task.id;
     },
   },
 });

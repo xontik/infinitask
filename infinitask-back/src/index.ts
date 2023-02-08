@@ -144,13 +144,14 @@ router.post(
   '/tasks',
   passport.authenticate('jwt', { session: false }),
   async (ctx) => {
-    const { title, boardId } = ctx.request.body;
+    const { title, boardId, parentId } = ctx.request.body;
     const task = await prisma.task.create({
       data: {
         title,
         boardId,
         content: '',
         completed: false,
+        parentId,
         authorId: ctx.state.user.id,
       },
     });
@@ -163,11 +164,13 @@ router.put(
   passport.authenticate('jwt', { session: false }),
   async (ctx) => {
     const { id } = ctx.params;
-    const { title } = ctx.request.body;
+    const { title, parentId, completed } = ctx.request.body;
 
     const task = await prisma.task.update({
       data: {
         title,
+        parentId,
+        completed,
       },
       where: { id: Number(id) },
     });

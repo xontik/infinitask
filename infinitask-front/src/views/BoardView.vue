@@ -29,12 +29,22 @@ export default defineComponent({
                 node.parent.id === null ||
                 !!expandedKeys.value[node.parent.id];
               node.expanded = !!expandedKeys.value[node.id];
+              node.collapsedIcon =
+                !node.children || node.children.length === 0
+                  ? "pi pi-fw pi-minus"
+                  : null;
+              node.expandedIcon =
+                !node.children || node.children.length === 0
+                  ? "pi pi-fw pi-minus"
+                  : null;
+
               return node;
             }),
             (node) => {
               const { up, down } = findUpDown(node);
               node.up = up;
               node.down = down;
+
               return node;
             }
           )
@@ -83,6 +93,13 @@ export default defineComponent({
       collapse: (a) => {
         expandedKeys.value = { ...expandedKeys.value, [a]: false };
       },
+      newTask: async (parent) => {
+        editingKey.value = await tasksStore.addTask(
+          parent.boardId,
+          "",
+          parent.id
+        );
+      },
     };
   },
   components: { TaskNode },
@@ -112,6 +129,8 @@ export default defineComponent({
             @close="close(slotProps.node.key)"
             @expand="expand(slotProps.node.key)"
             @collapse="collapse(slotProps.node.key)"
+            @new-child="newTask(slotProps.node)"
+            @new-brother="newTask(slotProps.node.parent)"
           />
         </template>
       </Tree>
@@ -122,8 +141,10 @@ export default defineComponent({
 <style scoped lang="scss">
 ::v-deep(.p-tree) {
   --tree-node-padding-bottom: 5px;
-  color: red;
   text-decoration: none;
+  .p-component {
+    font-weight: 500;
+  }
   .pi-fw {
     width: auto;
   }
@@ -152,6 +173,9 @@ export default defineComponent({
     }
     .p-treenode {
       padding: 0;
+      &:focus > .p-treenode-content {
+        box-shadow: none;
+      }
     }
     .p-treenode-label {
       display: block;
@@ -163,9 +187,22 @@ export default defineComponent({
     }
 
     .p-treenode-content {
+      &:focus-within {
+        background-color: #ececec;
+
+        input {
+          background-color: #ececec;
+          border: none;
+          box-shadow: none;
+        }
+      }
+      box-shadow: none;
       padding: var(--tree-node-padding-bottom);
       &.p-treenode-selectable:not(.p-highlight):hover {
         background-color: transparent;
+        &:focus-within {
+          background-color: #ececec;
+        }
       }
 
       position: relative;
@@ -183,6 +220,7 @@ export default defineComponent({
         text-decoration: none;
         width: 16px;
         height: 1rem;
+        visibility: visible;
         margin: 0;
       }
     }

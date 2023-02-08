@@ -10,7 +10,16 @@ export default defineComponent({
     modelValue: { type: Object as PropType<TaskNode>, required: true },
     editingKey: { type: Number, required: true },
   },
-  emits: ["update:modelValue", "move-to", "close", "expand", "collapse"],
+  emits: [
+    "update:modelValue",
+    "move-to",
+    "close",
+    "expand",
+    "collapse",
+    "select",
+    "new-child",
+    "new-brother",
+  ],
   setup(props, { emit }) {
     const tasksStore = useTasksStore();
     const { modelValue, editingKey } = toRefs(props);
@@ -21,8 +30,13 @@ export default defineComponent({
     });
     const updateTask = () => {
       if (editing.value === false) return;
-      if (newTitle.value === "") return;
+      if (newTitle.value === "") {
+        removeTask();
+        emit("close");
+        return;
+      }
       if (newTitle.value === modelValue.value.title) return;
+
       emit("close");
       tasksStore.updateTask(modelValue.value.id, newTitle.value);
     };
@@ -56,6 +70,19 @@ export default defineComponent({
       updateTask();
       emit("move-to", modelValue.value.down);
     };
+    const enter = () => {
+      if (editing.value !== true) return;
+      console.log("enter");
+      updateTask();
+    };
+    const newChild = () => {
+      enter();
+      emit("new-child");
+    };
+    const newBrother = () => {
+      enter();
+      emit("new-brother");
+    };
     const left = (e) => {
       e.preventDefault();
       if (
@@ -67,11 +94,14 @@ export default defineComponent({
     };
     const right = (e) => {
       e.preventDefault();
+      if (modelValue.value.title === "") return false;
       if (
         modelValue.value.expanded === true ||
         modelValue.value.children.length === 0
-      )
-        return false;
+      ) {
+        updateTask();
+        emit("new-child");
+      }
       emit("expand", modelValue.value.expanded);
     };
     return {
@@ -86,6 +116,9 @@ export default defineComponent({
       moveDown,
       left,
       right,
+      enter,
+      newChild,
+      newBrother,
     };
   },
 });
@@ -100,16 +133,17 @@ export default defineComponent({
       tabindex="-1"
     >
       <template #display>
-        {{ modelValue.title }}
+        <div tabindex="-1">{{ modelValue.title }}</div>
       </template>
       <template #content>
         <InputText
           class="title-input"
           v-model="newTitle"
-          @keyup.enter="updateTask"
+          @keyup.enter.exact.stop="enter"
+          @keyup.enter.ctrl.stop="newBrother"
           @keydown.space.stop
-          @keydown.left.stop
-          @keydown.right.stop
+          @keydown.left.exact.stop
+          @keydown.right.exact.stop
           @keydown.left.ctrl="left"
           @keydown.right.ctrl="right"
           @blur="
@@ -152,6 +186,17 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
+  .p-inplace {
+    .p-inplace-display {
+      &:not(.p-disabled):hover {
+        background-color: transparent;
+      }
+      display: block;
+      &:focus {
+        box-shadow: none;
+      }
+    }
+  }
   .inplace {
     flex-grow: 1;
   }
