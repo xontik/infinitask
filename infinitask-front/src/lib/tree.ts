@@ -26,12 +26,7 @@ export const unflatten = (items: any[]): Tree => {
   });
   console.log("computedTasksTree recomputed");
 
-  return mapTree(addParentRelation(topLevel, null), (node) => {
-    const { up, down } = findUpDown(node, node.id);
-    node.up = up;
-    node.down = down;
-    return node;
-  });
+  return addParentRelation(topLevel, null);
 };
 export const addParentRelation = (node: any, parent: any) => {
   node.parent = parent;
@@ -73,49 +68,39 @@ export const nextSiblingDescending = (node: any) => {
 };
 
 export const findUpDown = (
-  node: TaskNode,
-  key: number
+  node: TaskNode
 ): { up: number; down: number } | null => {
-  if (node.id === key) {
-    let up = null;
-    let down = null;
+  let up = null;
+  let down = null;
 
-    const { parent } = node;
+  const { parent } = node;
 
-    if (!parent) {
-      if (node.children.length > 0) {
-        down = node.children[0].id;
-      }
-      return { up, down };
-    }
-
-    const indexInParent = parent?.children.findIndex(
-      (child) => child.id === node.id
-    );
-
-    if (indexInParent === -1) {
-      throw new Error("indexInParent is undefined");
-    }
-
-    if (indexInParent === 0) {
-      up = parent.id;
-    } else {
-      up = lastChild(parent.children[indexInParent - 1]).id;
-    }
+  if (!parent) {
     if (node.children.length > 0) {
       down = node.children[0].id;
-    } else if (indexInParent < parent.children.length - 1) {
-      down = parent.children[indexInParent + 1].id;
-    } else {
-      down = nextSiblingDescending(parent)?.id || null;
     }
     return { up, down };
   }
-  for (const child of node.children) {
-    const result = findUpDown(child, key);
-    if (result) {
-      return result;
-    }
+
+  const indexInParent = parent?.children.findIndex(
+    (child) => child.id === node.id
+  );
+
+  if (indexInParent === -1) {
+    throw new Error("indexInParent is undefined");
   }
-  return null;
+
+  if (indexInParent === 0) {
+    up = parent.id;
+  } else {
+    up = lastChild(parent.children[indexInParent - 1]).id;
+  }
+  if (node.children.length > 0) {
+    down = node.children[0].id;
+  } else if (indexInParent < parent.children.length - 1) {
+    down = parent.children[indexInParent + 1].id;
+  } else {
+    down = nextSiblingDescending(parent)?.id || null;
+  }
+  return { up, down };
 };

@@ -3,7 +3,7 @@ import { defineComponent, onMounted, ref, computed, nextTick } from "vue";
 import { useTasksStore } from "../stores/tasks";
 import { storeToRefs } from "pinia";
 import TaskNode from "@/components/TaskNode.vue";
-import { mapTree } from "../lib/tree";
+import { mapTree, findUpDown } from "../lib/tree";
 
 export default defineComponent({
   name: "BoardView",
@@ -18,25 +18,33 @@ export default defineComponent({
       newTitle.value = "";
     };
     const computedTasksTree = computed(() => {
-      return tasksTree.value && tasksTree.value.children.length > 0
+      return tasksTree.value
         ? mapTree(tasksTree.value, (node) => {
+            const { up, down } = findUpDown(node);
+
             return {
               key: node.id,
               label: node.title,
               data: {
                 ...node,
+                up,
+                down,
                 editing: editingKey.value === node.id,
               },
             };
-          }).children
-        : [];
+          })
+        : null;
     });
+    const listForTree = computed(() => {
+      return computedTasksTree.value ? computedTasksTree.value.children : [];
+    });
+
     onMounted(async () => {
       await tasksStore.loadTasks(board.value.id);
     });
     const moveTo = async (from, to) => {
       if (to === -1) return;
-      expandedKeys[from] = true;
+      expandedKeys.value = { ...expandedKeys.value, [from]: true };
       await nextTick();
       editingKey.value = to;
     };
@@ -44,6 +52,7 @@ export default defineComponent({
     return {
       board,
       computedTasksTree,
+      listForTree,
       newTitle,
       expandedKeys,
       addTask,
@@ -57,7 +66,7 @@ export default defineComponent({
       },
       close: (a) => {
         console.log("close", a);
-        // editingKey.value = null;
+        editingKey.value = null;
       },
       moveTo,
     };
@@ -76,10 +85,9 @@ export default defineComponent({
         @keyup.enter="addTask"
       />
       <Tree
-        :value="computedTasksTree"
+        :value="listForTree"
         v-model:expandedKeys="expandedKeys"
         @node-select="select"
-        @node-unselect="close"
         selectionMode="single"
       >
         <template #default="slotProps">

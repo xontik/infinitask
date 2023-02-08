@@ -18,6 +18,8 @@ export default defineComponent({
 
     const updateTask = () => {
       if (modelValue.value.editing === false) return;
+      if (newTitle.value === "") return;
+      if (newTitle.value === modelValue.value.title) return;
       emit("close");
       tasksStore.updateTask(modelValue.value.id, newTitle.value);
     };
@@ -38,17 +40,21 @@ export default defineComponent({
     });
 
     const close = () => {
+      if (modelValue.value.editing !== true) return;
+      console.log("internal close");
       emit("close");
     };
 
     const moveUp = () => {
       if (modelValue.value.up === null) return;
       console.log("move up: ", modelValue.value.up);
+      updateTask();
       emit("move-to", modelValue.value.up);
     };
     const moveDown = () => {
       if (modelValue.value.down === null) return;
       console.log("move down: ", modelValue.value.down);
+      updateTask();
       emit("move-to", modelValue.value.down);
     };
     return {
@@ -81,7 +87,10 @@ export default defineComponent({
           v-model="newTitle"
           @keyup.enter="updateTask"
           @keydown.space.stop
-          @blur="updateTask"
+          @blur="
+            updateTask();
+            close();
+          "
           @keydown.esc="close"
           @keydown.up="moveUp"
           @keydown.down="moveDown"
