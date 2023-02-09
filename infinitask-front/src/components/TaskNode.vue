@@ -1,13 +1,13 @@
 <script lang="ts">
 import { defineComponent, ref, toRefs, nextTick, watch, computed } from "vue";
 import type { PropType } from "vue";
-import { useTasksStore } from "../stores/tasks";
-import type { TaskNode } from "../stores/tasks";
+import { useTasksStore, type Task } from "../stores/tasks";
+import type { TreeNode } from "@/lib/tree";
 
 export default defineComponent({
   name: "TaskNode",
   props: {
-    modelValue: { type: Object as PropType<TaskNode>, required: true },
+    modelValue: { type: Object as PropType<TreeNode<Task>>, required: true },
     editingKey: { type: Number, required: true },
   },
   emits: [
@@ -23,6 +23,7 @@ export default defineComponent({
   setup(props, { emit }) {
     const tasksStore = useTasksStore();
     const { modelValue, editingKey } = toRefs(props);
+
     const newTitle = ref("");
     const input = ref(null);
     const editing = computed(() => {
@@ -35,19 +36,21 @@ export default defineComponent({
         emit("close");
         return;
       }
-      if (newTitle.value === modelValue.value.title) return;
+      if (newTitle.value === modelValue.value.data.title) return;
 
       emit("close");
+      if (modelValue.value.id === null) throw new Error("id is null on update");
       tasksStore.updateTask(modelValue.value.id, newTitle.value);
     };
     const removeTask = () => {
+      if (modelValue.value.id === null) throw new Error("id is null on remove");
       tasksStore.removeTask(modelValue.value.id);
     };
     const open = async () => {
       if (editing.value !== true) return;
-      newTitle.value = modelValue.value.title;
+      newTitle.value = modelValue.value.data.title;
       await nextTick();
-      input.value.$el.focus();
+      if (input.value) input.value.$el.focus();
     };
 
     watch(editing, (newVal) => {
@@ -61,14 +64,14 @@ export default defineComponent({
     };
 
     const moveUp = () => {
-      if (modelValue.value.up === null) return;
+      if (modelValue.value.data.up === null) return;
       updateTask();
-      emit("move-to", modelValue.value.up);
+      emit("move-to", modelValue.value.data.up);
     };
     const moveDown = () => {
-      if (modelValue.value.down === null) return;
+      if (modelValue.value.data.down === null) return;
       updateTask();
-      emit("move-to", modelValue.value.down);
+      emit("move-to", modelValue.value.data.down);
     };
     const enter = () => {
       if (editing.value !== true) return;
@@ -83,7 +86,7 @@ export default defineComponent({
       enter();
       emit("new-brother");
     };
-    const left = (e) => {
+    const left = (e: KeyboardEvent) => {
       e.preventDefault();
       if (
         modelValue.value.expanded === false ||
@@ -92,9 +95,9 @@ export default defineComponent({
         return false;
       emit("collapse", modelValue.value.expanded);
     };
-    const right = (e) => {
+    const right = (e: KeyboardEvent) => {
       e.preventDefault();
-      if (modelValue.value.title === "") return false;
+      if (modelValue.value.data.title === "") return false;
       if (
         modelValue.value.expanded === true ||
         modelValue.value.children.length === 0
@@ -133,7 +136,7 @@ export default defineComponent({
       tabindex="-1"
     >
       <template #display>
-        <div tabindex="-1">{{ modelValue.title }}</div>
+        <div tabindex="-1">{{ modelValue.data.title }}</div>
       </template>
       <template #content>
         <InputText

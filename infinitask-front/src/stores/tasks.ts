@@ -1,24 +1,23 @@
-import { unflatten } from "@/lib/tree";
+import { unflatten, type TreeNode } from "@/lib/tree";
 import { defineStore } from "pinia";
 import { api } from "../lib/Api";
 export interface Board {
   id: number;
   title: string;
 }
-interface Task {
+export interface Task {
   id: number;
   title: string;
+  parentId: number | null;
+  boardId: number;
   completed: boolean;
 }
-export interface TaskNode extends Task {
-  children: TaskNode[];
-}
-
 interface TasksState {
   boards: Board[];
   currentBoard: Board | null;
   tasks: Task[];
 }
+
 export const useTasksStore = defineStore("tasks", {
   state: (): TasksState => ({
     boards: [],
@@ -26,7 +25,7 @@ export const useTasksStore = defineStore("tasks", {
     tasks: [],
   }),
   getters: {
-    tasksTree() {
+    tasksTree(): TreeNode<Task> | null {
       return this.tasks.length ? unflatten(this.tasks) : null;
     },
   },

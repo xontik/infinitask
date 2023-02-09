@@ -1,24 +1,45 @@
-export interface Tree {
-  map: Map;
-  tree: any;
+export interface TreeNode<Type> {
+  id: number | null;
+  parent: TreeNode<Type> | null;
+  children: TreeNode<Type>[];
+  depth: number | null;
+  data: Type;
+  expanded: boolean; //TODO remove it and use clone and filter
 }
 
-export const unflatten = (items: any[]): Tree => {
+export interface FlatTreeNode {
+  id: number;
+  parentId: number | null;
+}
+
+export const unflatten = <Type extends FlatTreeNode>(
+  items: Type[]
+): TreeNode<Type> => {
   const map = new Map();
   for (const item of items) {
-    map.set(item.id, { ...item, children: [] });
+    map.set(item.id, {
+      id: item.id,
+      children: [],
+      parent: null,
+      expanded: false,
+      depth: 0,
+      data: { ...item },
+    });
   }
 
   const topLevel = {
     id: null,
-    children: [],
-    parentId: null,
-  };
+    children: [] as TreeNode<Type>[],
+    parent: null,
+    depth: 0,
+    expanded: true,
+    data: {} as Type,
+  } as TreeNode<Type>;
   map.forEach((item) => {
-    if (item.parentId) {
-      const parent = map.get(item.parentId);
+    if (item.data.parentId) {
+      const parent = map.get(item.data.parentId);
       if (parent) {
-        parent.children.push({ ...item });
+        parent.children.push({ ...item, parent });
       }
     } else {
       topLevel.children.push(item);
@@ -27,84 +48,107 @@ export const unflatten = (items: any[]): Tree => {
 
   return addParentRelation(topLevel, null);
 };
-export const addParentRelation = (node: any, parent: any) => {
+
+export const addParentRelation = <Type>(
+  node: TreeNode<Type>,
+  parent: TreeNode<Type> | null
+): TreeNode<Type> => {
   if (parent === null) {
     node.depth = 0;
   } else {
+    if (parent.depth === null) {
+      throw new Error("Must start with a root node");
+    }
     node.depth = parent.depth + 1;
   }
   node.parent = parent;
   node.children = node.children.map((child) => addParentRelation(child, node));
   return node;
 };
-export const mapTree = (node, fn: (node: any) => any) => {
+export const mapTree = <Type, NewType>(
+  node: TreeNode<Type>,
+  fn: (node: TreeNode<Type>) => TreeNode<NewType>
+): TreeNode<NewType> => {
   return {
     ...fn(node),
     children: node.children
-      ? node.children.map((item) => mapTree(item, fn))
+      ? node.children.map((item) => mapTree<Type, NewType>(item, fn))
       : [],
   };
 };
 
-export const lastChild = (node: any) => {
+export const lastChild = <Type>(node: TreeNode<Type>): TreeNode<Type> => {
   if (node.children.length === 0 || node.expanded === false) {
     return node;
   } else {
-    return lastChild(node.children[node.children.length - 1]);
+    return lastChild<Type>(node.children[node.children.length - 1]);
   }
 };
+export const indexInParent = <Type>(node: TreeNode<Type>): number => {
+  if (!node.parent) {
+    throw new Error("node has no parent");
+  }
+  const index = node.parent.children.findIndex((child) => child.id === node.id);
+  if (index === -1) {
+    throw new Error("child not found in parent");
+  }
+  return index;
+};
 
-export const nextSiblingDescending = (node: any) => {
+export const nextSiblingDescending = <Type>(
+  node: TreeNode<Type>
+): TreeNode<Type> | null => {
   const { parent } = node;
   if (!parent) {
     return null;
   }
-  const indexInParent = parent.children.findIndex(
-    (child) => child.id === node.id
-  );
-  if (indexInParent === -1) {
-    throw new Error("indexInParent is undefined");
+  const index = indexInParent<Type>(node);
+  if (index === parent.children.length - 1) {
+    return nextSiblingDescending<Type>(parent);
   }
-  if (indexInParent === parent.children.length - 1) {
-    return nextSiblingDescending(parent);
-  }
-  return parent.children[indexInParent + 1];
+  return parent.children[index + 1];
 };
-
-export const findUpDown = (
-  node: TaskNode
-): { up: number; down: number } | null => {
-  let up = null;
-  let down = null;
-
+export const findUpInTree = <Type>(
+  node: TreeNode<Type>
+): TreeNode<Type> | null => {
   const { parent } = node;
 
   if (!parent) {
-    if (node.expanded === true && node.children.length > 0) {
-      down = node.children[0].id;
-    }
-    return { up, down };
+    return null;
   }
 
-  const indexInParent = parent?.children.findIndex(
-    (child) => child.id === node.id
-  );
-
-  if (indexInParent === -1) {
-    throw new Error("indexInParent is undefined");
-  }
-
-  if (indexInParent === 0) {
-    up = parent.id;
+  const index = indexInParent<Type>(node);
+  if (index === 0) {
+    return parent;
   } else {
-    up = lastChild(parent.children[indexInParent - 1]).id;
+    return lastChild(parent.children[index - 1]);
   }
+};
+
+export const findDownInTree = <Type>(
+  node: TreeNode<Type>
+): TreeNode<Type> | null => {
+  const { parent } = node;
+  if (!parent) {
+    return node.expanded === true && node.children.length > 0
+      ? node.children[0]
+      : null;
+  }
+  const index = indexInParent<Type>(node);
+
   if (node.expanded === true && node.children.length > 0) {
-    down = node.children[0].id;
-  } else if (indexInParent < parent.children.length - 1) {
-    down = parent.children[indexInParent + 1].id;
-  } else {
-    down = nextSiblingDescending(parent)?.id || null;
+    return node.children[0];
+  } else if (index < parent.children.length - 1) {
+    return parent.children[index + 1];
   }
-  return { up, down };
+  return nextSiblingDescending<Type>(parent);
+};
+
+export const findUpDown = <Type>(
+  node: TreeNode<Type>
+): { up: number | null; down: number | null } => {
+  return {
+    up: findUpInTree<Type>(node)?.id ?? null,
+    down: findDownInTree<Type>(node)?.id ?? null,
+  };
 };
