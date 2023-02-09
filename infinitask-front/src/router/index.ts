@@ -1,6 +1,7 @@
-import { useTasksStore } from "../stores/tasks";
+import { useBoardStore } from "../stores/board";
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -19,8 +20,7 @@ const router = createRouter({
           component: () => import("../views/BoardView.vue"),
           beforeEnter: async (to, from, next) => {
             const boardId = Number(to.params.id);
-            const tasksStore = useTasksStore();
-            await tasksStore.selectBoard(boardId);
+            await useBoardStore().selectBoard(boardId);
             next();
           },
         },

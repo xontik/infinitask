@@ -1,29 +1,29 @@
 <script lang="ts">
 import { storeToRefs } from "pinia";
 import { defineComponent, onMounted, ref } from "vue";
-import { useTasksStore } from "../stores/tasks";
+import { useBoardStore } from "@/stores/board";
 import BoardPreviewCard from "../components/BoardPreviewCard.vue";
 export default defineComponent({
   name: "BoardListView",
   setup() {
-    const tasksStore = useTasksStore();
-    const { boards } = storeToRefs(tasksStore);
+    const boardStore = useBoardStore();
+    const { boards } = storeToRefs(boardStore);
 
     const newTitle = ref("");
     const newTitleForUpdate = ref("");
 
     const addBoard = () => {
-      tasksStore.addBoard(newTitle.value);
+      boardStore.addBoard(newTitle.value);
       newTitle.value = "";
     };
     const updateBoard = (id) => {
       console.log(newTitleForUpdate.value, id);
     };
     const removeBoard = (id: number) => {
-      tasksStore.removeBoard(id);
+      boardStore.removeBoard(id);
     };
     onMounted(async () => {
-      await tasksStore.loadBoards();
+      await boardStore.loadBoards();
     });
     return {
       boards,

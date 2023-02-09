@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineComponent, ref, toRefs, nextTick, watch, computed } from "vue";
 import type { PropType } from "vue";
-import { useTasksStore, type Task } from "../stores/tasks";
+import { useTasksStore, type Task } from "../stores/task";
 import type { TreeNode } from "@/lib/tree";
 
 export default defineComponent({

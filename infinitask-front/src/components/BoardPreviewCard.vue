@@ -2,8 +2,8 @@
 import { defineComponent, ref, toRefs, onMounted } from "vue";
 import type { PropType } from "vue";
 import { useRouter } from "vue-router";
-import { useTasksStore } from "../stores/tasks";
-import type { Board } from "../stores/tasks";
+import { useTasksStore } from "../stores/task";
+import type { Board } from "../stores/task";
 
 export default defineComponent({
   name: "BoardPreviewCard",
