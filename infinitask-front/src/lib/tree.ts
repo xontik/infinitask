@@ -28,6 +28,11 @@ export const unflatten = (items: any[]): Tree => {
   return addParentRelation(topLevel, null);
 };
 export const addParentRelation = (node: any, parent: any) => {
+  if (parent === null) {
+    node.depth = 0;
+  } else {
+    node.depth = parent.depth + 1;
+  }
   node.parent = parent;
   node.children = node.children.map((child) => addParentRelation(child, node));
   return node;

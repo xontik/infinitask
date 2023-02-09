@@ -9,6 +9,7 @@ const prisma = new PrismaClient();
 import bcrypt from 'bcrypt';
 
 export const JWT_SECRET = 'secret';
+
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     const user = await prisma.user.findUnique({

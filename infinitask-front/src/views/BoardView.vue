@@ -3,6 +3,7 @@ import { defineComponent, onMounted, ref, computed, nextTick } from "vue";
 import { useTasksStore } from "../stores/tasks";
 import { storeToRefs } from "pinia";
 import TaskNode from "@/components/TaskNode.vue";
+import ITNode from "@/components/ITNode.vue";
 import { mapTree, findUpDown } from "../lib/tree";
 
 export default defineComponent({
@@ -70,6 +71,7 @@ export default defineComponent({
       board,
       computedTasksTree,
       listForTree,
+      tasksTree,
       newTitle,
       expandedKeys,
       addTask,
@@ -100,9 +102,12 @@ export default defineComponent({
           parent.id
         );
       },
+      moveTask: async (task, to) => {
+        await tasksStore.moveTask(task.id, to);
+      },
     };
   },
-  components: { TaskNode },
+  components: { TaskNode, ITNode },
 });
 </script>
 
@@ -115,30 +120,44 @@ export default defineComponent({
         placeholder="New task"
         @keyup.enter="addTask"
       />
-      <Tree
-        :value="listForTree"
-        v-model:expandedKeys="expandedKeys"
-        @node-select="select"
-        selectionMode="single"
-      >
-        <template #default="slotProps">
-          <TaskNode
-            :model-value="slotProps.node"
-            :editing-key="editingKey"
-            @move-to="(to) => moveTo(slotProps.node.key, to)"
-            @close="close(slotProps.node.key)"
-            @expand="expand(slotProps.node.key)"
-            @collapse="collapse(slotProps.node.key)"
-            @new-child="newTask(slotProps.node)"
-            @new-brother="newTask(slotProps.node.parent)"
-          />
-        </template>
-      </Tree>
+      <div class="tree-container">
+        <Tree
+          :value="listForTree"
+          v-model:expandedKeys="expandedKeys"
+          @node-select="select"
+          selectionMode="single"
+        >
+          <template #default="slotProps">
+            <TaskNode
+              :model-value="slotProps.node"
+              :editing-key="editingKey"
+              @move-to="(to) => moveTo(slotProps.node.key, to)"
+              @close="close(slotProps.node.key)"
+              @expand="expand(slotProps.node.key)"
+              @collapse="collapse(slotProps.node.key)"
+              @new-child="newTask(slotProps.node)"
+              @new-brother="newTask(slotProps.node.parent)"
+            />
+          </template>
+        </Tree>
+        <div class="ittree-container">
+          <ITNode v-if="tasksTree" :node="tasksTree" />
+        </div>
+      </div>
     </div>
   </main>
 </template>
 
 <style scoped lang="scss">
+.ittree-container {
+}
+.tree-container {
+  display: flex;
+
+  & > * {
+    width: 50%;
+  }
+}
 ::v-deep(.p-tree) {
   --tree-node-padding-bottom: 5px;
   text-decoration: none;

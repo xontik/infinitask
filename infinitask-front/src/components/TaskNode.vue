@@ -158,9 +158,6 @@ export default defineComponent({
         />
       </template>
     </Inplace>
-    {{ modelValue.id }}
-    {{ modelValue.expanded }} === up: {{ modelValue.up }} down:
-    {{ modelValue.down }}
     <Button
       @click="removeTask"
       tabindex="-1"
