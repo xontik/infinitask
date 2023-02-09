@@ -43,12 +43,13 @@ export default defineComponent({
     <BoardPreviewCard v-for="board in boards" :key="board.id" :board="board" />
     <div class="board-card shadow-2">
       <div class="top">
-        <InputText
+        <input
+          type="text"
           v-model="newTitle"
           placeholder="New board"
           @keyup.enter="addBoard"
         />
-        <Button @click="addBoard" icon="pi pi-plus" class="p-button-text p-1" />
+        <button @click="addBoard" class="p-button-text p-1">Add</button>
       </div>
     </div>
   </div>

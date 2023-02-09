@@ -15,4 +15,10 @@ export default defineComponent({
   <RouterView></RouterView>
 </template>
 
-<style scoped></style>
+<style>
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+</style>

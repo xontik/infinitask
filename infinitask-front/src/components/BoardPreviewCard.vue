@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, ref, toRefs, nextTick } from "vue";
+import { defineComponent, ref, toRefs, onMounted } from "vue";
 import type { PropType } from "vue";
 import { useRouter } from "vue-router";
 import { useTasksStore } from "../stores/tasks";
@@ -17,22 +17,12 @@ export default defineComponent({
     const { board } = toRefs(props);
 
     const newTitle = ref("");
-    const editing = ref(false);
-    const input = ref(null);
 
     const updateBoard = () => {
-      if (editing.value === false) return;
-      editing.value = false;
       tasksStore.updateBoard(board.value.id, newTitle.value);
     };
     const removeBoard = () => {
       tasksStore.removeBoard(board.value.id);
-    };
-    const open = async () => {
-      newTitle.value = board.value.title;
-      editing.value = true;
-      await nextTick();
-      input.value.$el.focus();
     };
 
     const goToBoard = async () => {
@@ -40,17 +30,13 @@ export default defineComponent({
       return false;
     };
 
-    const close = () => {
-      editing.value = false;
-    };
+    onMounted(async () => {
+      newTitle.value = board.value.title;
+    });
     return {
       newTitle,
-      editing,
-      input,
       removeBoard,
       updateBoard,
-      open,
-      close,
       goToBoard,
     };
   },
@@ -59,22 +45,15 @@ export default defineComponent({
 <template>
   <div class="board-card shadow-2">
     <div class="top">
-      <Inplace :active="editing" @close="close" @open="open" class="inplace">
-        <template #display>
-          {{ board.title }}
-        </template>
-        <template #content>
-          <InputText
-            v-model="newTitle"
-            @keyup.enter="updateBoard"
-            @blur="updateBoard"
-            @keydown.esc="close"
-            ref="input"
-          />
-        </template>
-      </Inplace>
+      <input
+        v-model="newTitle"
+        @keyup.enter="updateBoard"
+        @blur="updateBoard"
+      />
 
-      <Button @click="removeBoard" icon="pi pi-trash" class="p-button-text" />
+      <button type="button" @click="removeBoard" class="p-button-text">
+        Delete
+      </button>
     </div>
     <div class="content">
       <ul>
@@ -82,12 +61,7 @@ export default defineComponent({
       </ul>
     </div>
     <div class="foot">
-      <Button
-        @click="goToBoard"
-        label="Open board"
-        icon="pi pi-arrow-right
-"
-      />
+      <button @click="goToBoard">Open board</button>
     </div>
   </div>
 </template>
@@ -97,6 +71,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   min-width: 270px;
+  box-shadow: 2px 2px 5px 0px rgba(0, 0, 0, 0.2);
 
   .top {
     display: flex;

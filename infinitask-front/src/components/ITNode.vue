@@ -12,7 +12,6 @@ export default defineComponent({
   },
   setup(props) {
     const { node } = toRefs(props);
-    const isRoot = computed(() => !node.value.parent);
 
     const indent = computed(() => {
       return (node.value.depth || 0) * 16;
@@ -21,7 +20,6 @@ export default defineComponent({
       return node.value.children.length === 0;
     });
     return {
-      isRoot,
       indent,
       isLeaf,
     };
@@ -32,34 +30,23 @@ export default defineComponent({
 });
 </script>
 <template>
-  <template v-if="isRoot">
-    <ITChildren v-if="!isLeaf" :tasks="node.children" class="root-children" />
-  </template>
-  <template v-else>
-    <li :class="{ node: true }">
-      <ITChildren v-if="!isLeaf" :tasks="node.children" />
+  <li class="treenode">
+    <ITChildren v-if="!isLeaf" :tasks="node.children" />
 
-      <div class="node-row">
-        <div class="front" :style="{ width: indent + 'px' }">
-          <a v-if="!isLeaf">+</a>
-        </div>
-        <div class="content">{{ node.data.title }}</div>
-        <div class="back">{{ node.id }}</div>
+    <div class="treenode__row">
+      <div class="treenode__indent" :style="{ width: indent + 'px' }">
+        <a v-if="!isLeaf">+</a>
       </div>
-    </li>
-  </template>
+      <div class="treenode__content">{{ node.data.title }}</div>
+      <div class="treenode__action">{{ node.id }}</div>
+    </div>
+  </li>
 </template>
-
+<!-- 
 <style scoped lang="scss">
 li.node {
   position: relative;
-  margin: 0;
-  padding: 0;
   padding-top: 30px;
-  text-indent: 0;
-  list-style-type: none;
-  list-style: none;
-
   .node-row {
     position: absolute;
     top: 0;
@@ -88,12 +75,10 @@ ul.node-children {
   margin: 0;
   padding: 0;
   width: 100%;
-  text-indent: 0;
-  list-style-type: none;
-  list-style: none;
 
   &.root-children {
     padding-top: 0;
   }
 }
-</style>
+</style> -->
+<style lang="scss"></style>

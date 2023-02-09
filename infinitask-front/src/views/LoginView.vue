@@ -33,40 +33,24 @@ export default defineComponent({
 </script>
 
 <template>
-  <Card>
-    <template #title> Signin </template>
-    <template #content>
-      <div class="form-container" @keyup.enter="login">
-        <span class="p-input-icon-left">
-          <i class="pi pi-user"></i>
-          <InputText
-            v-model="username"
-            placeholder="Username"
-            type="text"
-            required
-          />
-        </span>
-        <span class="p-input-icon-left">
-          <i class="pi pi-lock"></i>
-          <InputText
-            v-model="password"
-            placeholder="Password"
-            type="password"
-            required
-          />
-        </span>
-      </div>
-    </template>
-    <template #footer>
-      <Button
-        @click="login"
-        icon="pi pi-check"
-        iconPos="right"
-        :loading="loading"
-        label="Signin"
-      />
-    </template>
-  </Card>
+  <div>
+    <div class="form-container" @keyup.enter="login">
+      <span class="p-input-icon-left">
+        <i class="pi pi-user"></i>
+        <input v-model="username" placeholder="Username" type="text" required />
+      </span>
+      <span class="p-input-icon-left">
+        <i class="pi pi-lock"></i>
+        <input
+          v-model="password"
+          placeholder="Password"
+          type="password"
+          required
+        />
+      </span>
+    </div>
+    <button @click="login" :loading="loading" type="button">Login</button>
+  </div>
 </template>
 
 <style scoped>
