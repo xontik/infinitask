@@ -8,40 +8,40 @@ export interface TreeNode<Type> {
 }
 
 export interface FlatTreeNode {
-  id: number;
+  id: number | null;
   parentId: number | null;
   opened: boolean;
 }
-
-export const unflatten = <Type extends FlatTreeNode>(
-  items: Type[]
+export const buildNode = <Type extends FlatTreeNode>(
+  flatNode: Type
 ): TreeNode<Type> => {
-  const map = new Map();
-  for (const item of items) {
-    map.set(item.id, {
-      id: item.id,
-      children: [],
-      parent: null,
-      opened: item.opened,
-      depth: 0,
-      data: { ...item },
-    });
-  }
-
-  const topLevel = {
-    id: null,
-    children: [] as TreeNode<Type>[],
+  return {
+    id: flatNode.id,
     parent: null,
-    depth: 0,
+    children: [],
+    depth: null,
+    data: { ...flatNode },
+    opened: flatNode.opened,
+  };
+};
+export const unflatten = <Type extends FlatTreeNode>(
+  items: Map<number | null, Type>
+): TreeNode<Type> => {
+  const topLevel = buildNode({
+    id: null,
+    parentId: null,
     opened: true,
-    data: {} as Type,
-  } as TreeNode<Type>;
+  } as Type);
+
+  const map = new Map<number | null, TreeNode<Type>>();
+  items.forEach((item) => {
+    const { id } = item;
+    map.set(id, buildNode<Type>(item));
+  });
   map.forEach((item) => {
-    if (item.data.parentId) {
-      const parent = map.get(item.data.parentId);
-      if (parent) {
-        parent.children.push({ ...item, parent });
-      }
+    const parent = map.get(item.data.parentId);
+    if (parent) {
+      parent.children.push(item);
     } else {
       topLevel.children.push(item);
     }
