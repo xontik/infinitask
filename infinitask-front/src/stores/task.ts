@@ -10,6 +10,7 @@ export interface Task {
   parentId: number | null;
   boardId: number;
   completed: boolean;
+  opened: boolean;
 }
 interface TaskStoreState {
   tasks: Task[];
@@ -34,9 +35,9 @@ export const useTasksStore = defineStore("tasks", {
       this.tasks = this.tasks.filter((task) => task.id !== id);
     },
 
-    async updateTask(id: number, title: string) {
-      await api.put(`/tasks/${id}`, { title });
-      const task = this.tasks.find((task) => task.id === id);
+    async updateTask(task: Partial<Task>) {
+      const apiTask = await api.put(`/tasks/${task.id}`, { ...task });
+      const task = this.tasks.findIndex((t) => t.id === task.id);
       if (task) {
         task.title = title;
       }

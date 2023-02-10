@@ -40,4 +40,5 @@ model Task {
   parent    Task?    @relation("TaskToTask", fields: [parentId], references: [id])
   parentId  Int?
   children  Task[]   @relation("TaskToTask")
+  opened    Boolean  @default(false)
 }

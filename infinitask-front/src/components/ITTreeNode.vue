@@ -4,6 +4,7 @@ import type { TreeNode } from "@/lib/tree";
 import type { Task } from "@/stores/task";
 import { computed } from "vue";
 
+import { useTasksStore } from "@/stores/task";
 const props = defineProps<{
   taskNode: TreeNode<Task>;
 }>();
@@ -18,6 +19,11 @@ const isLeaf = computed(() => {
 const click = () => {
   console.log("click", props.taskNode.id);
 };
+const openNode = () => {
+  useTasksStore().updateTask(props.taskNode.id, {
+    opened: true,
+  });
+};
 </script>
 <template>
   <li class="task-node" @click.stop="click">
@@ -25,7 +31,7 @@ const click = () => {
 
     <div class="task-node__row">
       <div class="task-node__indent" :style="{ width: indent + 'px' }">
-        <a v-if="!isLeaf">+</a>
+        <a v-if="!isLeaf" @click="openNode">></a>
       </div>
       <div class="task-node__content">{{ taskNode.data.title }}</div>
       <div class="task-node__action">{{ taskNode.id }}</div>

@@ -4,12 +4,13 @@ export interface TreeNode<Type> {
   children: TreeNode<Type>[];
   depth: number | null;
   data: Type;
-  expanded: boolean; //TODO remove it and use clone and filter
+  opened: boolean;
 }
 
 export interface FlatTreeNode {
   id: number;
   parentId: number | null;
+  opened: boolean;
 }
 
 export const unflatten = <Type extends FlatTreeNode>(
@@ -21,7 +22,7 @@ export const unflatten = <Type extends FlatTreeNode>(
       id: item.id,
       children: [],
       parent: null,
-      expanded: false,
+      opened: item.opened,
       depth: 0,
       data: { ...item },
     });
@@ -32,7 +33,7 @@ export const unflatten = <Type extends FlatTreeNode>(
     children: [] as TreeNode<Type>[],
     parent: null,
     depth: 0,
-    expanded: true,
+    opened: true,
     data: {} as Type,
   } as TreeNode<Type>;
   map.forEach((item) => {
@@ -78,7 +79,7 @@ export const mapTree = <Type, NewType>(
 };
 
 export const lastChild = <Type>(node: TreeNode<Type>): TreeNode<Type> => {
-  if (node.children.length === 0 || node.expanded === false) {
+  if (node.children.length === 0 || node.opened === false) {
     return node;
   } else {
     return lastChild<Type>(node.children[node.children.length - 1]);
@@ -130,13 +131,13 @@ export const findDownInTree = <Type>(
 ): TreeNode<Type> | null => {
   const { parent } = node;
   if (!parent) {
-    return node.expanded === true && node.children.length > 0
+    return node.opened === true && node.children.length > 0
       ? node.children[0]
       : null;
   }
   const index = indexInParent<Type>(node);
 
-  if (node.expanded === true && node.children.length > 0) {
+  if (node.opened === true && node.children.length > 0) {
     return node.children[0];
   } else if (index < parent.children.length - 1) {
     return parent.children[index + 1];
