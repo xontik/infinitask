@@ -164,13 +164,13 @@ router.put(
   passport.authenticate('jwt', { session: false }),
   async (ctx) => {
     const { id } = ctx.params;
-    const { title, parentId, completed } = ctx.request.body;
-
+    const { title, parentId, completed, opened } = ctx.request.body;
     const task = await prisma.task.update({
       data: {
         title,
         parentId,
         completed,
+        opened,
       },
       where: { id: Number(id) },
     });

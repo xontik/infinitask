@@ -36,8 +36,16 @@ export const useTasksStore = defineStore("tasks", {
     },
 
     async updateTask(task: Partial<Task>) {
-      const apiTask = (await api.put(`/tasks/${task.id}`, { ...task })).data;
-      this.tasks.set(apiTask.id, apiTask.data);
+      if (task.id === undefined) {
+        throw new Error("Task id is undefined");
+      }
+      const oldTask = this.tasks.get(task.id);
+      this.tasks.set(task.id, { ...oldTask, ...task } as Task);
+      try {
+        await api.put(`/tasks/${task.id}`, { ...task });
+      } catch (e) {
+        this.tasks.set(task.id, oldTask!);
+      }
     },
 
     async loadTasks(boardId: number) {

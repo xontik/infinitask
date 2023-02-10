@@ -16,4 +16,8 @@ const { tasksTree } = storeToRefs(tasksStore);
   </div>
 </template>
 
-<style lang="scss"></style>
+<style lang="scss">
+.task-tree {
+  font-size: 2rem;
+}
+</style>

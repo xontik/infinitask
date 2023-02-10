@@ -10,7 +10,7 @@ const props = defineProps<{
 }>();
 
 const indent = computed(() => {
-  return (props.taskNode.depth || 0) * 16;
+  return (props.taskNode.depth || 0) * 3;
 });
 const isLeaf = computed(() => {
   return props.taskNode.children.length === 0;
@@ -19,19 +19,27 @@ const isLeaf = computed(() => {
 const click = () => {
   console.log("click", props.taskNode.id);
 };
-const openNode = () => {
-  useTasksStore().updateTask(props.taskNode.id, {
-    opened: true,
+const toggleNode = () => {
+  console.log("toggleNode", props.taskNode);
+  useTasksStore().updateTask({
+    ...props.taskNode.data,
+    opened: !props.taskNode.opened,
   });
 };
 </script>
 <template>
   <li class="task-node" @click.stop="click">
-    <ITTreeChildren v-if="!isLeaf" :taskNodes="taskNode.children" />
+    <ITTreeChildren
+      v-if="!isLeaf && taskNode.opened"
+      :taskNodes="taskNode.children"
+    />
 
     <div class="task-node__row">
-      <div class="task-node__indent" :style="{ width: indent + 'px' }">
-        <a v-if="!isLeaf" @click="openNode">></a>
+      <div class="task-node__indent" :style="{ width: indent + 'rem' }">
+        <div v-if="!isLeaf" class="task-node__toggler" @click="toggleNode">
+          <iconify-icon v-if="taskNode.opened" icon="mdi:chevron-up" />
+          <iconify-icon v-else icon="mdi:chevron-right" />
+        </div>
       </div>
       <div class="task-node__content">{{ taskNode.data.title }}</div>
       <div class="task-node__action">{{ taskNode.id }}</div>
@@ -41,12 +49,13 @@ const openNode = () => {
 <style lang="scss">
 .task-node {
   position: relative;
-  padding-top: 30px;
+  padding-top: 3rem;
   cursor: pointer;
   &__row {
     position: absolute;
     top: 0;
-    height: 30px;
+    height: 3rem;
+    line-height: 3rem;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -55,6 +64,8 @@ const openNode = () => {
   }
   &__indent {
     text-align: right;
+    display: flex;
+    justify-content: flex-end;
   }
   &__content {
     flex-grow: 1;
@@ -63,6 +74,15 @@ const openNode = () => {
   &__action {
     width: 100px;
     text-align: right;
+  }
+  &__toggler {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: #ccc;
+    text-align: center;
+    line-height: 3rem;
+    cursor: pointer;
   }
 }
 </style>
