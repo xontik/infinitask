@@ -28,8 +28,17 @@ export const useTasksStore = defineStore("tasks", {
     tasksTree(): TreeNode<Task> | null {
       return this.tasks.size ? unflatten(this.tasks) : null;
     },
+    inspectedTask(): Task | null {
+      return this.inspectedTaskId
+        ? this.tasks.get(this.inspectedTaskId) ?? null
+        : null;
+    },
   },
   actions: {
+    inspectTask(id: number | null) {
+      this.inspectedTaskId = id;
+    },
+
     async removeTask(id: number) {
       await api.delete(`/tasks/${id}`);
       this.tasks.delete(id);

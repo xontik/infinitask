@@ -3,21 +3,27 @@ import ITTreeChildren from "./ITTreeChildren.vue";
 import type { TreeNode } from "@/lib/tree";
 import type { Task } from "@/stores/task";
 import { computed } from "vue";
+import { storeToRefs } from "pinia";
 
 import { useTasksStore } from "@/stores/task";
 const props = defineProps<{
   taskNode: TreeNode<Task>;
 }>();
-
+const taskStore = useTasksStore();
+const { inspectedTaskId } = storeToRefs(taskStore);
 const indent = computed(() => {
   return (props.taskNode.depth || 0) * 3;
 });
 const isLeaf = computed(() => {
   return props.taskNode.children.length === 0;
 });
+const isInspected = computed(() => {
+  return props.taskNode.id === inspectedTaskId.value;
+});
 
 const click = () => {
   console.log("click", props.taskNode.id);
+  useTasksStore().inspectTask(props.taskNode.id);
 };
 const toggleNode = () => {
   console.log("toggleNode", props.taskNode);
@@ -34,7 +40,12 @@ const toggleNode = () => {
       :taskNodes="taskNode.children"
     />
 
-    <div class="task-node__row">
+    <div
+      :class="{
+        'task-node__row': true,
+        'task-node__row--is-inspected': isInspected,
+      }"
+    >
       <div class="task-node__indent" :style="{ width: indent + 'rem' }">
         <div v-if="!isLeaf" class="task-node__toggler" @click="toggleNode">
           <iconify-icon v-if="taskNode.opened" icon="mdi:chevron-up" />
@@ -61,6 +72,10 @@ const toggleNode = () => {
     justify-content: flex-start;
     width: 100%;
     padding: 2px 0;
+
+    &--is-inspected {
+      background-color: #ccc;
+    }
   }
   &__indent {
     text-align: right;
