@@ -1,11 +1,17 @@
-import { unflatten, type FlatTreeNode, type TreeNode } from "@/lib/tree";
+import {
+  findDownInTree,
+  findUpInTree,
+  findInTree,
+  unflatten,
+  type TreeNode,
+} from "@/lib/tree";
 import { defineStore } from "pinia";
 import { api } from "../lib/Api";
 
 import { useBoardStore } from "./board";
 
 export interface Task {
-  id: number;
+  id: number | null;
   title: string;
   parentId: number | null;
   boardId: number;
@@ -16,6 +22,7 @@ interface TaskStoreState {
   tasks: Map<number | null, Task>;
   selectedTaskIds: number[];
   inspectedTaskId: number | null;
+  editingTaskId: number | null;
 }
 
 export const useTasksStore = defineStore("tasks", {
@@ -23,6 +30,7 @@ export const useTasksStore = defineStore("tasks", {
     tasks: new Map(),
     selectedTaskIds: [],
     inspectedTaskId: null,
+    editingTaskId: null,
   }),
   getters: {
     tasksTree(): TreeNode<Task> | null {
@@ -33,10 +41,44 @@ export const useTasksStore = defineStore("tasks", {
         ? this.tasks.get(this.inspectedTaskId) ?? null
         : null;
     },
+    editingTask(): Task | null {
+      return this.editingTaskId
+        ? this.tasks.get(this.editingTaskId) ?? null
+        : null;
+    },
+    taskAbove(): (task: Task) => Task | null {
+      return (task: Task) => {
+        if (!this.tasksTree) {
+          return null;
+        }
+        const taskNode = findInTree(this.tasksTree, task.id);
+        if (!taskNode) {
+          return null;
+        }
+        const taskAbove = findUpInTree<Task>(taskNode);
+        return taskAbove && taskAbove.id !== -1 ? taskAbove.data : null;
+      };
+    },
+    taskBelow(): (task: Task) => Task | null {
+      return (task: Task) => {
+        if (!this.tasksTree) {
+          return null;
+        }
+        const taskNode = findInTree(this.tasksTree, task.id);
+        if (!taskNode) {
+          return null;
+        }
+        const taskBelow = findDownInTree<Task>(taskNode);
+        return taskBelow && taskBelow.id !== -1 ? taskBelow.data : null;
+      };
+    },
   },
   actions: {
     inspectTask(id: number | null) {
       this.inspectedTaskId = id;
+    },
+    editTask(id: number | null) {
+      this.editingTaskId = id;
     },
 
     async removeTask(id: number) {
@@ -76,6 +118,18 @@ export const useTasksStore = defineStore("tasks", {
       this.tasks.set(task.id, task);
 
       return task.id;
+    },
+
+    addTempBlankTask(parent: Task) {
+      const task = {
+        id: null,
+        title: "",
+        parentId: parent.id,
+        boardId: parent.boardId,
+        completed: false,
+        opened: false,
+      } as Task;
+      this.tasks.set(task.id, task);
     },
   },
 });

@@ -28,7 +28,7 @@ export const unflatten = <Type extends FlatTreeNode>(
   items: Map<number | null, Type>
 ): TreeNode<Type> => {
   const topLevel = buildNode({
-    id: null,
+    id: -1,
     parentId: null,
     opened: true,
   } as Type);
@@ -143,6 +143,22 @@ export const findDownInTree = <Type>(
     return parent.children[index + 1];
   }
   return nextSiblingDescending<Type>(parent);
+};
+
+export const findInTree = <Type>(
+  node: TreeNode<Type>,
+  id: number
+): TreeNode<Type> | null => {
+  if (node.id === id) {
+    return node;
+  }
+  for (const child of node.children) {
+    const found = findInTree<Type>(child, id);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
 };
 
 export const findUpDown = <Type>(

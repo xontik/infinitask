@@ -2,15 +2,22 @@
 import ITTreeChildren from "./ITTreeChildren.vue";
 import type { TreeNode } from "@/lib/tree";
 import type { Task } from "@/stores/task";
-import { computed } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 
 import { useTasksStore } from "@/stores/task";
 const props = defineProps<{
   taskNode: TreeNode<Task>;
 }>();
+// const emit = defineEmits<{
+//   (e: "edit"): void;
+//   (e: "close"): void;
+// }>();
+const titleEdit = ref("");
 const taskStore = useTasksStore();
-const { inspectedTaskId } = storeToRefs(taskStore);
+const { inspectedTaskId, editingTaskId } = storeToRefs(taskStore);
+const cancelUpdate = ref(false);
+
 const indent = computed(() => {
   return (props.taskNode.depth || 0) * 3;
 });
@@ -20,21 +27,72 @@ const isLeaf = computed(() => {
 const isInspected = computed(() => {
   return props.taskNode.id === inspectedTaskId.value;
 });
+const editing = computed(() => {
+  return editingTaskId.value === props.taskNode.id;
+});
 
-const click = () => {
+const clickNode = () => {
   console.log("click", props.taskNode.id);
-  useTasksStore().inspectTask(props.taskNode.id);
+  taskStore.inspectTask(props.taskNode.id);
+};
+const clickContent = () => {
+  console.log("clickContent", props.taskNode.id);
+  titleEdit.value = props.taskNode.data.title;
+  taskStore.editTask(props.taskNode.id);
 };
 const toggleNode = () => {
   console.log("toggleNode", props.taskNode);
-  useTasksStore().updateTask({
+  taskStore.updateTask({
     ...props.taskNode.data,
     opened: !props.taskNode.opened,
   });
 };
+const updateTask = async () => {
+  if (cancelUpdate.value) {
+    cancelUpdate.value = false;
+    return;
+  }
+  if (titleEdit.value === props.taskNode.data.title) {
+    return;
+  }
+  console.log("updateTask", props.taskNode.id, titleEdit.value);
+  await taskStore.updateTask({
+    ...props.taskNode.data,
+    title: titleEdit.value,
+  });
+};
+
+watch(
+  () => editing.value,
+  (newVal: boolean, oldVal: boolean) => {
+    if (!newVal && oldVal) {
+      console.log("watch editing", newVal, oldVal);
+      updateTask();
+    }
+  }
+);
+onMounted(() => {
+  titleEdit.value = props.taskNode.data.title;
+});
+
+const blur = () => {
+  console.log("blur", editing.value);
+  updateTask();
+  if (editing.value) {
+    taskStore.editTask(-1);
+  }
+};
+
+const esc = () => {
+  console.log("esc", editing.value);
+  cancelUpdate.value = true;
+  if (editing.value) {
+    taskStore.editTask(-1);
+  }
+};
 </script>
 <template>
-  <li class="task-node" @click.stop="click">
+  <li class="task-node" @click.stop="clickNode">
     <ITTreeChildren
       v-if="!isLeaf && taskNode.opened"
       :taskNodes="taskNode.children"
@@ -52,7 +110,19 @@ const toggleNode = () => {
           <iconify-icon v-else icon="mdi:chevron-right" />
         </div>
       </div>
-      <div class="task-node__content">{{ taskNode.data.title }}</div>
+      <div class="task-node__content">
+        <input
+          v-if="editing"
+          type="text"
+          v-model="titleEdit"
+          v-focus
+          @keydown.esc="esc"
+          @blur="blur"
+          @keydown.up.prevent
+          @keydown.down.prevent
+        />
+        <span v-else @click="clickContent">{{ taskNode.data.title }} </span>
+      </div>
       <div class="task-node__action">{{ taskNode.id }}</div>
     </div>
   </li>
