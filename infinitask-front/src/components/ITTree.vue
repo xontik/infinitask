@@ -46,14 +46,14 @@ const findTaskToBaseMouvementOn = () => {
   return task;
 };
 const enter = () => {
-  console.log("enter");
+  console.log("enter tree");
   const task = findTaskToBaseMouvementOn();
   if (!task) return;
-  console.log("task", task);
   tasksStore.addTempBlankTask(task);
   tasksStore.editTask(NEW_TASK_ID);
 };
 const keydown = (e: KeyboardEvent) => {
+  //TODO verifier qu'on a le focus
   if (e.key === "ArrowDown") {
     down();
   }
@@ -90,13 +90,14 @@ const keydown = (e: KeyboardEvent) => {
     }
   }
   if (e.key === "Tab") {
-    e.preventDefault();
-    const task = tasksStore.inspectedTask;
+    const task = tasksStore.editingTask;
     if (!task || !tasksTree.value) return;
+    e.preventDefault();
 
     if (e.shiftKey) {
       const nodeTask = findInTree(tasksTree.value, task.parentId);
       if (!nodeTask) return;
+      //TODO changement recursif de parent
       tasksStore.updateTask({ ...task, parentId: nodeTask.parent?.id });
     } else {
       const taskAbove = tasksStore.taskAbove(task);
@@ -105,6 +106,7 @@ const keydown = (e: KeyboardEvent) => {
       if (!taskAbove.opened) {
         tasksStore.updateTask({ ...taskAbove, opened: true });
       }
+      //TODO changement recursif de parent
       tasksStore.updateTask({ ...task, parentId: taskAbove.id });
     }
   }
@@ -117,7 +119,7 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <div class="task-tree">
+  <div class="task-tree" tabindex="0">
     <ITTreeChildren
       v-if="tasksTree?.children"
       :task-nodes="tasksTree.children"

@@ -17,7 +17,7 @@ const props = defineProps<{
 const titleEdit = ref("");
 const taskStore = useTasksStore();
 const { inspectedTaskId, editingTaskId } = storeToRefs(taskStore);
-const cancelUpdate = ref(false);
+const updating = ref(false);
 
 const indent = computed(() => {
   return (props.taskNode.depth || 0) * 3;
@@ -49,27 +49,32 @@ const toggleNode = () => {
   });
 };
 const updateTask = async () => {
-  if (cancelUpdate.value) {
-    cancelUpdate.value = false;
+  if (updating.value) {
+    updating.value = false;
     return;
   }
+  updating.value = true;
+  console.log("update  ");
+
   if (titleEdit.value === props.taskNode.data.title) {
     if (props.taskNode.id === NEW_TASK_ID) {
-      taskStore.deleteTask(props.taskNode.id);
+      await taskStore.deleteTask(props.taskNode.id);
     }
     return;
   }
+
   if (props.taskNode.id === NEW_TASK_ID) {
+    await taskStore.deleteTask(NEW_TASK_ID);
     await taskStore.addTask(titleEdit.value, props.taskNode.data.parentId);
     titleEdit.value = "";
     return;
   }
 
-  console.log("updateTask", props.taskNode.id, titleEdit.value);
   await taskStore.updateTask({
     ...props.taskNode.data,
     title: titleEdit.value,
   });
+  updating.value = false;
 };
 
 watch(
@@ -96,12 +101,10 @@ const blur = async () => {
 const enter = async () => {
   console.log("enter");
   await updateTask();
-  cancelUpdate.value = false;
 };
 
 const esc = () => {
   console.log("esc", editing.value);
-  cancelUpdate.value = true;
   taskStore.editTask(NO_TASK_ID);
 };
 

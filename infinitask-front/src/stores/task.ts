@@ -92,6 +92,8 @@ export const useTasksStore = defineStore("tasks", {
       if (id !== NEW_TASK_ID) {
         await api.delete(`/tasks/${id}`);
       }
+      console.log("delete");
+
       this.tasks.delete(id);
     },
 
@@ -126,6 +128,7 @@ export const useTasksStore = defineStore("tasks", {
         await api.post<Task>("/tasks", { boardId, title, parentId })
       ).data;
       this.tasks.set(task.id, task);
+      console.log("add task");
 
       //comming from back there is an id
       return task.id!;
@@ -141,6 +144,7 @@ export const useTasksStore = defineStore("tasks", {
         opened: false,
       } as Task;
       this.tasks.set(task.id, task);
+      console.log("addTempBlankTask");
     },
 
     async expandTask(id: number) {
