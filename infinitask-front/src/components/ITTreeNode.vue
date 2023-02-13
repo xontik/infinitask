@@ -2,7 +2,7 @@
 import ITTreeChildren from "./ITTreeChildren.vue";
 import type { TreeNode } from "@/lib/tree";
 import type { Task } from "@/stores/task";
-import { computed, ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted, nextTick } from "vue";
 import { storeToRefs } from "pinia";
 import { NO_TASK_ID, NEW_TASK_ID } from "@/stores/task";
 
@@ -16,7 +16,7 @@ const { inspectedTaskId, editingTaskId } = storeToRefs(tasksStore);
 const nodeRowElement = ref<HTMLElement | null>(null);
 
 const indent = computed(() => {
-  return (props.taskNode.depth || 0) * 3;
+  return (props.taskNode.depth || 0) * 3 + 2;
 });
 const isLeaf = computed(() => {
   return props.taskNode.children.length === 0;
@@ -113,6 +113,16 @@ const enter = (e: KeyboardEvent) => {
     }
   }
 };
+const blur = () => {
+  nextTick(() => {
+    if (editing.value) {
+      tasksStore.editTask(NO_TASK_ID);
+    }
+  });
+};
+const toggleComplete = () => {
+  tasksStore.toggleComplete(props.taskNode.id);
+};
 </script>
 <template>
   <li class="task-node" @click.stop="clickNode">
@@ -130,12 +140,32 @@ const enter = (e: KeyboardEvent) => {
       tabindex="-1"
     >
       <div class="task-node__indent" :style="{ width: indent + 'rem' }">
+        <div
+          :class="{
+            'task-node__checkbox': true,
+            'task-node__checkbox--is-completed': taskNode.data.completed,
+          }"
+          @click="toggleComplete"
+          v-if="taskNode.data.id !== NEW_TASK_ID"
+        >
+          <iconify-icon
+            v-if="taskNode.data.completed"
+            icon="mdi:checkbox-marked"
+          />
+          <iconify-icon v-else icon="mdi:checkbox-blank-outline" />
+        </div>
+
         <div v-if="!isLeaf" class="task-node__toggler" @click="toggleNode">
           <iconify-icon v-if="taskNode.opened" icon="mdi:chevron-up" />
           <iconify-icon v-else icon="mdi:chevron-right" />
         </div>
       </div>
-      <div class="task-node__content">
+      <div
+        :class="{
+          'task-node__content': true,
+          'task-node__content--is-completed': taskNode.data.completed,
+        }"
+      >
         <input
           v-if="editing"
           type="text"
@@ -148,6 +178,7 @@ const enter = (e: KeyboardEvent) => {
           @keydown.right.ctrl.prevent
           @keydown.delete.ctrl.prevent
           @keydown.enter="enter"
+          @blur="blur"
         />
         <span v-else @click="clickContent">{{ taskNode.data.title }} </span>
       </div>
@@ -179,6 +210,13 @@ const enter = (e: KeyboardEvent) => {
 
     &--is-inspected {
       background-color: #ccc;
+
+      .task-node__checkbox {
+        display: block;
+      }
+    }
+    &:hover .task-node__checkbox {
+      display: block;
     }
   }
   &__indent {
@@ -188,6 +226,9 @@ const enter = (e: KeyboardEvent) => {
   }
   &__content {
     flex-grow: 1;
+    &--is-completed {
+      text-decoration: line-through;
+    }
   }
 
   &__action {
@@ -203,45 +244,13 @@ const enter = (e: KeyboardEvent) => {
     line-height: 3rem;
     cursor: pointer;
   }
+  &__checkbox {
+    cursor: pointer;
+    margin-right: auto;
+    display: none;
+    &--is-completed {
+      display: block;
+    }
+  }
 }
 </style>
-
-<!-- 
-<style scoped lang="scss">
-li.node {
-  position: relative;
-  padding-top: 30px;
-  .node-row {
-    position: absolute;
-    top: 0;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-    padding: 2px 0;
-
-    .front {
-      text-align: right;
-    }
-    .content {
-      flex-grow: 1;
-    }
-
-    .back {
-      width: 100px;
-      text-align: right;
-    }
-  }
-}
-ul.node-children {
-  position: relative;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-
-  &.root-children {
-    padding-top: 0;
-  }
-}
-</style> -->

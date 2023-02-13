@@ -5,6 +5,7 @@ import {
   unflatten,
   type TreeNode,
   lastChild,
+  applyToAllChildren,
 } from "@/lib/tree";
 import { defineStore } from "pinia";
 import { api } from "../lib/Api";
@@ -27,6 +28,7 @@ interface TaskStoreState {
   selectedTaskIds: number[];
   inspectedTaskId: number | null;
   editingTaskId: number | null;
+  showCompleted: boolean;
 }
 
 export const useTasksStore = defineStore("tasks", {
@@ -35,10 +37,21 @@ export const useTasksStore = defineStore("tasks", {
     selectedTaskIds: [],
     inspectedTaskId: NO_TASK_ID,
     editingTaskId: NO_TASK_ID,
+    showCompleted: true,
   }),
   getters: {
     tasksTree(): TreeNode<Task> | null {
-      return this.tasks.size ? unflatten(this.tasks) : null;
+      return this.tasks.size
+        ? unflatten(
+            this.tasks,
+            this.showCompleted ? undefined : (node) => node.data.completed
+          )
+        : null;
+    },
+    tasksCompleted(): Task[] {
+      return [...this.tasks]
+        .map(([, value]) => value)
+        .filter((t) => t.completed);
     },
     inspectedTask(): Task | null {
       return this.inspectedTaskId
@@ -94,13 +107,24 @@ export const useTasksStore = defineStore("tasks", {
     },
   },
   actions: {
+    setShowCompleted(show: boolean) {
+      this.showCompleted = show;
+    },
     inspectTask(id: number | null) {
       this.inspectedTaskId = id;
     },
     editTask(id: number | null) {
       this.editingTaskId = id;
     },
-
+    toggleComplete(id: number | null) {
+      if (!this.tasksTree) return;
+      const task = findInTree(this.tasksTree, id);
+      if (!task) return;
+      const completed = !task.data.completed;
+      applyToAllChildren(task, (t) => {
+        this.updateTask({ id: t.id, completed });
+      });
+    },
     async deleteTask(id: number | null) {
       if (id !== ROOT_TASK_ID && id !== NEW_TASK_ID) {
         await api.delete(`/tasks/${id}`);

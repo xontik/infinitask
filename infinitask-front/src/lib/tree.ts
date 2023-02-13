@@ -27,7 +27,8 @@ export const buildNode = <Type extends FlatTreeNode>(
   };
 };
 export const unflatten = <Type extends FlatTreeNode>(
-  items: Map<number | null, Type>
+  items: Map<number | null, Type>,
+  exclude?: (node: TreeNode<Type>) => boolean
 ): TreeNode<Type> => {
   const topLevel = buildNode({
     id: null,
@@ -41,6 +42,9 @@ export const unflatten = <Type extends FlatTreeNode>(
     map.set(id, buildNode<Type>(item));
   });
   map.forEach((item) => {
+    if (exclude && exclude(item)) {
+      return;
+    }
     const parent = map.get(item.data.parentId);
     if (parent) {
       parent.children.push(item);
@@ -129,7 +133,13 @@ export const findUpInTree = <Type>(
     return lastChild(parent.children[index - 1]);
   }
 };
-
+export const applyToAllChildren = <Type>(
+  node: TreeNode<Type>,
+  fn: (node: TreeNode<Type>) => void
+) => {
+  fn(node);
+  node.children.forEach((child) => applyToAllChildren(child, fn));
+};
 export const findDownInTree = <Type>(
   node: TreeNode<Type>
 ): TreeNode<Type> | null => {
