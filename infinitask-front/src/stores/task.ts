@@ -9,6 +9,9 @@ import { defineStore } from "pinia";
 import { api } from "../lib/Api";
 
 import { useBoardStore } from "./board";
+export const NO_TASK_ID = -2;
+export const ROOT_TASK_ID = null;
+export const NEW_TASK_ID = -1;
 
 export interface Task {
   id: number | null;
@@ -56,7 +59,9 @@ export const useTasksStore = defineStore("tasks", {
           return null;
         }
         const taskAbove = findUpInTree<Task>(taskNode);
-        return taskAbove && taskAbove.id !== -1 ? taskAbove.data : null;
+        return taskAbove && taskAbove.id !== ROOT_TASK_ID
+          ? taskAbove.data
+          : null;
       };
     },
     taskBelow(): (task: Task) => Task | null {
@@ -69,7 +74,9 @@ export const useTasksStore = defineStore("tasks", {
           return null;
         }
         const taskBelow = findDownInTree<Task>(taskNode);
-        return taskBelow && taskBelow.id !== -1 ? taskBelow.data : null;
+        return taskBelow && taskBelow.id !== ROOT_TASK_ID
+          ? taskBelow.data
+          : null;
       };
     },
   },
@@ -81,8 +88,10 @@ export const useTasksStore = defineStore("tasks", {
       this.editingTaskId = id;
     },
 
-    async removeTask(id: number) {
-      await api.delete(`/tasks/${id}`);
+    async deleteTask(id: number) {
+      if (id !== NEW_TASK_ID) {
+        await api.delete(`/tasks/${id}`);
+      }
       this.tasks.delete(id);
     },
 
@@ -90,6 +99,7 @@ export const useTasksStore = defineStore("tasks", {
       if (task.id === undefined) {
         throw new Error("Task id is undefined");
       }
+
       const oldTask = this.tasks.get(task.id);
       this.tasks.set(task.id, { ...oldTask, ...task } as Task);
       try {
@@ -110,22 +120,23 @@ export const useTasksStore = defineStore("tasks", {
       this.tasks = tasks;
     },
 
-    async addTask(title: string, parentId?: number): Promise<number> {
+    async addTask(title: string, parentId: number | null): Promise<number> {
       const boardId = useBoardStore().selectedBoardId;
       const task = (
         await api.post<Task>("/tasks", { boardId, title, parentId })
       ).data;
       this.tasks.set(task.id, task);
 
-      return task.id;
+      //comming from back there is an id
+      return task.id!;
     },
 
-    addTempBlankTask(parent: Task) {
+    addTempBlankTask(origin: Task) {
       const task = {
-        id: null,
+        id: NEW_TASK_ID,
         title: "",
-        parentId: parent.id,
-        boardId: parent.boardId,
+        parentId: origin.parentId,
+        boardId: origin.boardId,
         completed: false,
         opened: false,
       } as Task;

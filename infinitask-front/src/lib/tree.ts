@@ -1,3 +1,5 @@
+import { NEW_TASK_ID } from "@/stores/task";
+
 export interface TreeNode<Type> {
   id: number | null;
   parent: TreeNode<Type> | null;
@@ -28,7 +30,7 @@ export const unflatten = <Type extends FlatTreeNode>(
   items: Map<number | null, Type>
 ): TreeNode<Type> => {
   const topLevel = buildNode({
-    id: -1,
+    id: null,
     parentId: null,
     opened: true,
   } as Type);
@@ -63,7 +65,9 @@ export const addParentRelation = <Type>(
     node.depth = parent.depth + 1;
   }
   node.parent = parent;
-  node.children = node.children.map((child) => addParentRelation(child, node));
+  node.children = node.children
+    .map((child) => addParentRelation(child, node))
+    .sort((a, b) => (a.id === NEW_TASK_ID ? 1 : b.id === NEW_TASK_ID ? -1 : 0));
   return node;
 };
 export const mapTree = <Type, NewType>(
@@ -147,7 +151,7 @@ export const findDownInTree = <Type>(
 
 export const findInTree = <Type>(
   node: TreeNode<Type>,
-  id: number
+  id: number | null
 ): TreeNode<Type> | null => {
   if (node.id === id) {
     return node;

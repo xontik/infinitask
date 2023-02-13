@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useTasksStore } from "@/stores/task";
 import { storeToRefs } from "pinia";
-import { onMounted, onBeforeUnmount } from "vue";
-
 import ITTreeChildren from "./ITTreeChildren.vue";
+import { onBeforeUnmount, onMounted } from "vue";
+import { NEW_TASK_ID } from "@/stores/task";
 
 const tasksStore = useTasksStore();
 const { tasksTree } = storeToRefs(tasksStore);
@@ -47,12 +47,9 @@ const enter = () => {
   console.log("enter");
   const task = findTaskToBaseMouvementOn();
   if (!task) return;
-
-  if (tasksStore.editingTask) {
-    console.log("add task bellow editing task");
-  } else {
-    console.log("add task bellow inspected task");
-  }
+  console.log("task", task);
+  tasksStore.addTempBlankTask(task);
+  tasksStore.editTask(NEW_TASK_ID);
 };
 const keydown = (e: KeyboardEvent) => {
   if (e.key === "ArrowDown") {
