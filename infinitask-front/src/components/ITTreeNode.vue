@@ -11,9 +11,8 @@ const props = defineProps<{
   taskNode: TreeNode<Task>;
 }>();
 const titleEdit = ref("");
-const taskStore = useTasksStore();
-const { inspectedTaskId, editingTaskId } = storeToRefs(taskStore);
-const updating = ref(false);
+const tasksStore = useTasksStore();
+const { inspectedTaskId, editingTaskId } = storeToRefs(tasksStore);
 const nodeRowElement = ref<HTMLElement | null>(null);
 
 const indent = computed(() => {
@@ -30,14 +29,14 @@ const editing = computed(() => {
 });
 
 const clickNode = () => {
-  taskStore.inspectTask(props.taskNode.id);
+  tasksStore.inspectTask(props.taskNode.id);
 };
 const clickContent = () => {
   titleEdit.value = props.taskNode.data.title;
-  taskStore.editTask(props.taskNode.id);
+  tasksStore.editTask(props.taskNode.id);
 };
 const toggleNode = () => {
-  taskStore.updateTask({
+  tasksStore.updateTask({
     ...props.taskNode.data,
     opened: !props.taskNode.opened,
   });
@@ -48,12 +47,12 @@ const updateTask = async () => {
   }
 
   if (props.taskNode.id === NEW_TASK_ID) {
-    await taskStore.addTask(titleEdit.value, props.taskNode.data.parentId);
+    await tasksStore.addTask(titleEdit.value, props.taskNode.data.parentId);
     titleEdit.value = "";
     return;
   }
 
-  await taskStore.updateTask({
+  await tasksStore.updateTask({
     ...props.taskNode.data,
     title: titleEdit.value,
   });
@@ -64,7 +63,7 @@ watch(
   async (newVal: boolean, oldVal: boolean) => {
     if (!newVal && oldVal) {
       if (props.taskNode.id === NEW_TASK_ID) {
-        await taskStore.deleteTask(props.taskNode.id);
+        await tasksStore.deleteTask(props.taskNode.id);
       }
       await updateTask();
     }
@@ -86,7 +85,7 @@ watch(
 
     if (!newVal && oldVal) {
       if (editing.value) {
-        taskStore.editTask(NO_TASK_ID);
+        tasksStore.editTask(NO_TASK_ID);
       }
     }
   }
@@ -95,32 +94,24 @@ onMounted(() => {
   titleEdit.value = props.taskNode.data.title;
 });
 
-// const blur = async () => {
-//   await updateTask();
-//   if (editing.value) {
-//     taskStore.editTask(NO_TASK_ID);
-//     return;
-//   }
-//   if (props.taskNode.id === NEW_TASK_ID) {
-//     // await taskStore.deleteTask(props.taskNode.id);
-//     return;
-//   }
-// };
-
-// const enter = async (e: KeyboardEvent) => {
-//   if (props.taskNode.id === NEW_TASK_ID && titleEdit.value === "") {
-//     e.stopPropagation();
-//   }
-//   await updateTask();
-// };
-
 const esc = () => {
-  taskStore.editTask(NO_TASK_ID);
+  tasksStore.editTask(NO_TASK_ID);
 };
 
 const remove = () => {
-  taskStore.editTask(NO_TASK_ID);
-  taskStore.deleteTask(props.taskNode.id!);
+  tasksStore.editTask(NO_TASK_ID);
+  tasksStore.deleteTask(props.taskNode.id!);
+};
+
+const enter = (e: KeyboardEvent) => {
+  if (props.taskNode.id === NEW_TASK_ID && titleEdit.value === "") {
+    e.stopPropagation();
+    const taskAbove = tasksStore.taskAbove(props.taskNode.data);
+    tasksStore.editTask(NO_TASK_ID);
+    if (taskAbove) {
+      tasksStore.inspectTask(taskAbove.id);
+    }
+  }
 };
 </script>
 <template>
@@ -151,13 +142,12 @@ const remove = () => {
           v-model="titleEdit"
           v-focus
           @keydown.esc="esc"
-          @blur="blur"
-          @keydown.enter="enter"
           @keydown.up.prevent
           @keydown.down.prevent
           @keydown.left.ctrl.prevent
           @keydown.right.ctrl.prevent
           @keydown.delete.ctrl.prevent
+          @keydown.enter="enter"
         />
         <span v-else @click="clickContent">{{ taskNode.data.title }} </span>
       </div>

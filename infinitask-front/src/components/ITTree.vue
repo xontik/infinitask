@@ -60,12 +60,17 @@ const enter = () => {
   if (!task) return;
   if (tasksStore.editingTask?.id === NEW_TASK_ID) {
     tasksStore.editTask(NO_TASK_ID);
-    task.title = "";
-    return;
+    const taskAbove = tasksStore.taskAbove(task);
+    tasksStore.deleteTask(task.id);
+    if (taskAbove) {
+      tasksStore.inspectTask(taskAbove.id);
+    }
   }
-  tasksStore.addTempBlankTask(task.parentId);
-  tasksStore.editTask(NEW_TASK_ID);
-  tasksStore.inspectTask(NEW_TASK_ID);
+  nextTick(() => {
+    tasksStore.addTempBlankTask(task.parentId);
+    tasksStore.editTask(NEW_TASK_ID);
+    tasksStore.inspectTask(NEW_TASK_ID);
+  });
 };
 const keydown = async (e: KeyboardEvent) => {
   const active = tree.value?.contains(document.activeElement);
