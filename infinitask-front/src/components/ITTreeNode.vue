@@ -141,6 +141,8 @@ const remove = () => {
           @keydown.enter="enter"
           @keydown.up.prevent
           @keydown.down.prevent
+          @keydown.left.ctrl.prevent
+          @keydown.right.ctrl.prevent
         />
         <span v-else @click="clickContent">{{ taskNode.data.title }} </span>
       </div>

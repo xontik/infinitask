@@ -142,5 +142,14 @@ export const useTasksStore = defineStore("tasks", {
       } as Task;
       this.tasks.set(task.id, task);
     },
+
+    async expandTask(id: number) {
+      const task = this.tasks.get(id);
+      if (!task) {
+        return;
+      }
+      task.opened = true;
+      await this.updateTask(task);
+    },
   },
 });

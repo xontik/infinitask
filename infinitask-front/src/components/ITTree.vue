@@ -34,6 +34,7 @@ const up = () => {
 
   tasksStore.inspectTask(taskAbove.id);
 };
+
 const findTaskToBaseMouvementOn = () => {
   let task = null;
   if (tasksStore.editingTask !== null) {
@@ -60,6 +61,32 @@ const keydown = (e: KeyboardEvent) => {
   }
   if (e.key === "Enter") {
     enter();
+  }
+  if (e.key === "ArrowRight") {
+    if (
+      (tasksStore.editingTask && e.ctrlKey) ||
+      (tasksStore.editingTask === null && !e.ctrlKey)
+    ) {
+      const task = tasksStore.inspectedTask;
+      if (!task || task.opened) return;
+      tasksStore.updateTask({
+        ...task,
+        opened: true,
+      });
+    }
+  }
+  if (e.key === "ArrowLeft") {
+    if (
+      (tasksStore.editingTask && e.ctrlKey) ||
+      (tasksStore.editingTask === null && !e.ctrlKey)
+    ) {
+      const task = tasksStore.inspectedTask;
+      if (!task || !task.opened) return;
+      tasksStore.updateTask({
+        ...task,
+        opened: false,
+      });
+    }
   }
 };
 onMounted(() => {
