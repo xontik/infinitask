@@ -55,7 +55,7 @@ const findTaskToBaseMouvementOn = () => {
   }
   return task;
 };
-const enter = () => {
+const enter = (e) => {
   const task = findTaskToBaseMouvementOn();
   if (!task) return;
   if (tasksStore.editingTask?.id === NEW_TASK_ID) {
@@ -67,7 +67,14 @@ const enter = () => {
     }
   }
   nextTick(() => {
-    tasksStore.addTempBlankTask(task.parentId);
+    let taskId = task.parentId;
+    if (e.ctrlKey) {
+      taskId = task.id;
+      if (!task.opened) {
+        tasksStore.updateTask({ ...task, opened: true });
+      }
+    }
+    tasksStore.addTempBlankTask(taskId);
     tasksStore.editTask(NEW_TASK_ID);
     tasksStore.inspectTask(NEW_TASK_ID);
   });
@@ -87,7 +94,7 @@ const keydown = async (e: KeyboardEvent) => {
     up();
   }
   if (e.key === "Enter") {
-    enter();
+    enter(e);
   }
   if (e.key === "ArrowRight") {
     if (
