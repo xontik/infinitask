@@ -4,6 +4,7 @@ import {
   findInTree,
   unflatten,
   type TreeNode,
+  lastChild,
 } from "@/lib/tree";
 import { defineStore } from "pinia";
 import { api } from "../lib/Api";
@@ -78,6 +79,18 @@ export const useTasksStore = defineStore("tasks", {
           ? taskBelow.data
           : null;
       };
+    },
+    firstTask(): Task | null {
+      if (!this.tasksTree || this.tasksTree.children.length === 0) {
+        return null;
+      }
+      return this.tasksTree.children[0].data;
+    },
+    lastTask(): Task | null {
+      if (!this.tasksTree || this.tasksTree.children.length === 0) {
+        return null;
+      }
+      return lastChild(this.tasksTree)?.data ?? null;
     },
   },
   actions: {

@@ -15,7 +15,7 @@ export default defineComponent({
 
 <template>
   <div class="base-layout">
-    <router-link :to="{ name: 'dashboard' }">Boards</router-link>
+    <router-link tabindex="-1" :to="{ name: 'dashboard' }">Boards</router-link>
 
     <RouterView></RouterView>
   </div>

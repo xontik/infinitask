@@ -86,6 +86,14 @@ watch(
     }
   }
 );
+watch(
+  () => isInspected.value,
+  (newVal: boolean, oldVal: boolean) => {
+    if (!newVal && oldVal) {
+      console.log("watch inspected", newVal, oldVal);
+    }
+  }
+);
 onMounted(() => {
   titleEdit.value = props.taskNode.data.title;
 });

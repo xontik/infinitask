@@ -2,17 +2,24 @@
 import { useTasksStore } from "@/stores/task";
 import { storeToRefs } from "pinia";
 import ITTreeChildren from "./ITTreeChildren.vue";
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { NEW_TASK_ID } from "@/stores/task";
 import { findInTree } from "@/lib/tree";
 
 const tasksStore = useTasksStore();
 const { tasksTree } = storeToRefs(tasksStore);
+const tree = ref<HTMLElement | null>(null);
 
 const down = () => {
   console.log("down");
   const task = findTaskToBaseMouvementOn();
-  if (!task) return;
+  if (!task) {
+    const firstTask = tasksStore.firstTask;
+    if (firstTask) {
+      tasksStore.inspectTask(firstTask.id);
+    }
+    return;
+  }
   const taskBelow = tasksStore.taskBelow(task);
   if (!taskBelow) return;
 
@@ -24,7 +31,13 @@ const down = () => {
 const up = () => {
   console.log("up");
   const task = findTaskToBaseMouvementOn();
-  if (!task) return;
+  if (!task) {
+    const lastTask = tasksStore.lastTask;
+    if (lastTask) {
+      tasksStore.inspectTask(lastTask.id);
+    }
+    return;
+  }
   const taskAbove = tasksStore.taskAbove(task);
   if (!taskAbove) return;
 
@@ -53,11 +66,17 @@ const enter = () => {
   tasksStore.editTask(NEW_TASK_ID);
 };
 const keydown = (e: KeyboardEvent) => {
+  const active = tree.value?.contains(document.activeElement);
+  console.log("active", active);
+  if (!active) return;
   //TODO verifier qu'on a le focus
   if (e.key === "ArrowDown") {
+    e.preventDefault();
     down();
   }
   if (e.key === "ArrowUp") {
+    e.preventDefault();
+
     up();
   }
   if (e.key === "Enter") {
@@ -106,7 +125,6 @@ const keydown = (e: KeyboardEvent) => {
       if (!taskAbove.opened) {
         tasksStore.updateTask({ ...taskAbove, opened: true });
       }
-      //TODO changement recursif de parent
       tasksStore.updateTask({ ...task, parentId: taskAbove.id });
     }
   }
@@ -119,7 +137,7 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <div class="task-tree" tabindex="0">
+  <div class="task-tree" tabindex="1" ref="tree" v-focus>
     <ITTreeChildren
       v-if="tasksTree?.children"
       :task-nodes="tasksTree.children"
@@ -130,5 +148,7 @@ onBeforeUnmount(() => {
 <style lang="scss">
 .task-tree {
   font-size: 2rem;
+  overflow-y: scroll;
+  height: 80vh;
 }
 </style>
