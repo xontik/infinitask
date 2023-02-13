@@ -43,24 +43,13 @@ const toggleNode = () => {
   });
 };
 const updateTask = async () => {
-  if (updating.value) {
-    updating.value = false;
-    return;
-  }
-  updating.value = true;
-
-  if (titleEdit.value === props.taskNode.data.title) {
-    if (props.taskNode.id === NEW_TASK_ID) {
-      await taskStore.deleteTask(props.taskNode.id);
-      // taskStore.inspectTask(props.taskNode?.parent?.id ?? NO_TASK_ID);
-    }
+  if (titleEdit.value === props.taskNode.data.title || titleEdit.value === "") {
     return;
   }
 
   if (props.taskNode.id === NEW_TASK_ID) {
     await taskStore.addTask(titleEdit.value, props.taskNode.data.parentId);
     titleEdit.value = "";
-    updating.value = false;
     return;
   }
 
@@ -68,15 +57,16 @@ const updateTask = async () => {
     ...props.taskNode.data,
     title: titleEdit.value,
   });
-  updating.value = false;
-  return;
 };
 
 watch(
   () => editing.value,
-  (newVal: boolean, oldVal: boolean) => {
+  async (newVal: boolean, oldVal: boolean) => {
     if (!newVal && oldVal) {
-      updateTask();
+      if (props.taskNode.id === NEW_TASK_ID) {
+        await taskStore.deleteTask(props.taskNode.id);
+      }
+      await updateTask();
     }
   }
 );
@@ -93,28 +83,36 @@ watch(
         );
       }
     }
+
+    if (!newVal && oldVal) {
+      if (editing.value) {
+        taskStore.editTask(NO_TASK_ID);
+      }
+    }
   }
 );
 onMounted(() => {
   titleEdit.value = props.taskNode.data.title;
 });
 
-const blur = async () => {
-  await updateTask();
-  if (editing.value) {
-    taskStore.editTask(NO_TASK_ID);
-    return;
-  }
-  if (props.taskNode.id === NEW_TASK_ID) {
-    await taskStore.deleteTask(props.taskNode.id);
-    taskStore.inspectTask(props.taskNode?.parent?.id ?? NO_TASK_ID);
-    return;
-  }
-};
+// const blur = async () => {
+//   await updateTask();
+//   if (editing.value) {
+//     taskStore.editTask(NO_TASK_ID);
+//     return;
+//   }
+//   if (props.taskNode.id === NEW_TASK_ID) {
+//     // await taskStore.deleteTask(props.taskNode.id);
+//     return;
+//   }
+// };
 
-const enter = async () => {
-  await updateTask();
-};
+// const enter = async (e: KeyboardEvent) => {
+//   if (props.taskNode.id === NEW_TASK_ID && titleEdit.value === "") {
+//     e.stopPropagation();
+//   }
+//   await updateTask();
+// };
 
 const esc = () => {
   taskStore.editTask(NO_TASK_ID);

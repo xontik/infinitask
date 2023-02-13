@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTasksStore } from "@/stores/task";
+import { NO_TASK_ID, useTasksStore } from "@/stores/task";
 import { storeToRefs } from "pinia";
 import ITTreeChildren from "./ITTreeChildren.vue";
 import { onBeforeUnmount, onMounted, ref, nextTick } from "vue";
@@ -58,6 +58,11 @@ const findTaskToBaseMouvementOn = () => {
 const enter = () => {
   const task = findTaskToBaseMouvementOn();
   if (!task) return;
+  if (tasksStore.editingTask?.id === NEW_TASK_ID) {
+    tasksStore.editTask(NO_TASK_ID);
+    task.title = "";
+    return;
+  }
   tasksStore.addTempBlankTask(task.parentId);
   tasksStore.editTask(NEW_TASK_ID);
   tasksStore.inspectTask(NEW_TASK_ID);
