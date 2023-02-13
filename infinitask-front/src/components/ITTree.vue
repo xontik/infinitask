@@ -4,6 +4,7 @@ import { storeToRefs } from "pinia";
 import ITTreeChildren from "./ITTreeChildren.vue";
 import { onBeforeUnmount, onMounted } from "vue";
 import { NEW_TASK_ID } from "@/stores/task";
+import { findInTree } from "@/lib/tree";
 
 const tasksStore = useTasksStore();
 const { tasksTree } = storeToRefs(tasksStore);
@@ -86,6 +87,25 @@ const keydown = (e: KeyboardEvent) => {
         ...task,
         opened: false,
       });
+    }
+  }
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const task = tasksStore.inspectedTask;
+    if (!task || !tasksTree.value) return;
+
+    if (e.shiftKey) {
+      const nodeTask = findInTree(tasksTree.value, task.parentId);
+      if (!nodeTask) return;
+      tasksStore.updateTask({ ...task, parentId: nodeTask.parent?.id });
+    } else {
+      const taskAbove = tasksStore.taskAbove(task);
+      if (!taskAbove) return;
+
+      if (!taskAbove.opened) {
+        tasksStore.updateTask({ ...taskAbove, opened: true });
+      }
+      tasksStore.updateTask({ ...task, parentId: taskAbove.id });
     }
   }
 };
