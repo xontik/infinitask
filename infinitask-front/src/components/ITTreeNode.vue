@@ -2,7 +2,7 @@
 import ITTreeChildren from "./ITTreeChildren.vue";
 import type { TreeNode } from "@/lib/tree";
 import type { Task } from "@/stores/task";
-import { computed, ref, watch, onMounted, nextTick } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { NO_TASK_ID, NEW_TASK_ID } from "@/stores/task";
 
@@ -10,14 +10,11 @@ import { useTasksStore } from "@/stores/task";
 const props = defineProps<{
   taskNode: TreeNode<Task>;
 }>();
-// const emit = defineEmits<{
-//   (e: "edit"): void;
-//   (e: "close"): void;
-// }>();
 const titleEdit = ref("");
 const taskStore = useTasksStore();
 const { inspectedTaskId, editingTaskId } = storeToRefs(taskStore);
 const updating = ref(false);
+const nodeRowElement = ref<HTMLElement | null>(null);
 
 const indent = computed(() => {
   return (props.taskNode.depth || 0) * 3;
@@ -33,16 +30,13 @@ const editing = computed(() => {
 });
 
 const clickNode = () => {
-  console.log("click", props.taskNode.id);
   taskStore.inspectTask(props.taskNode.id);
 };
 const clickContent = () => {
-  console.log("clickContent", props.taskNode.id);
   titleEdit.value = props.taskNode.data.title;
   taskStore.editTask(props.taskNode.id);
 };
 const toggleNode = () => {
-  console.log("toggleNode", props.taskNode);
   taskStore.updateTask({
     ...props.taskNode.data,
     opened: !props.taskNode.opened,
@@ -54,19 +48,19 @@ const updateTask = async () => {
     return;
   }
   updating.value = true;
-  console.log("update  ");
 
   if (titleEdit.value === props.taskNode.data.title) {
     if (props.taskNode.id === NEW_TASK_ID) {
       await taskStore.deleteTask(props.taskNode.id);
+      // taskStore.inspectTask(props.taskNode?.parent?.id ?? NO_TASK_ID);
     }
     return;
   }
 
   if (props.taskNode.id === NEW_TASK_ID) {
-    await taskStore.deleteTask(NEW_TASK_ID);
     await taskStore.addTask(titleEdit.value, props.taskNode.data.parentId);
     titleEdit.value = "";
+    updating.value = false;
     return;
   }
 
@@ -75,13 +69,13 @@ const updateTask = async () => {
     title: titleEdit.value,
   });
   updating.value = false;
+  return;
 };
 
 watch(
   () => editing.value,
   (newVal: boolean, oldVal: boolean) => {
     if (!newVal && oldVal) {
-      console.log("watch editing", newVal, oldVal);
       updateTask();
     }
   }
@@ -89,8 +83,15 @@ watch(
 watch(
   () => isInspected.value,
   (newVal: boolean, oldVal: boolean) => {
-    if (!newVal && oldVal) {
-      console.log("watch inspected", newVal, oldVal);
+    if (newVal && !oldVal) {
+      if (!editing.value) {
+        nodeRowElement?.value?.focus();
+        console.log(
+          "isInspected",
+          nodeRowElement.value,
+          document.activeElement
+        );
+      }
     }
   }
 );
@@ -99,25 +100,27 @@ onMounted(() => {
 });
 
 const blur = async () => {
-  console.log("blur", editing.value);
   await updateTask();
   if (editing.value) {
     taskStore.editTask(NO_TASK_ID);
+    return;
+  }
+  if (props.taskNode.id === NEW_TASK_ID) {
+    await taskStore.deleteTask(props.taskNode.id);
+    taskStore.inspectTask(props.taskNode?.parent?.id ?? NO_TASK_ID);
+    return;
   }
 };
 
 const enter = async () => {
-  console.log("enter");
   await updateTask();
 };
 
 const esc = () => {
-  console.log("esc", editing.value);
   taskStore.editTask(NO_TASK_ID);
 };
 
 const remove = () => {
-  console.log("remove", editing.value);
   taskStore.editTask(NO_TASK_ID);
   taskStore.deleteTask(props.taskNode.id!);
 };
@@ -134,6 +137,8 @@ const remove = () => {
         'task-node__row': true,
         'task-node__row--is-inspected': isInspected,
       }"
+      ref="nodeRowElement"
+      tabindex="-1"
     >
       <div class="task-node__indent" :style="{ width: indent + 'rem' }">
         <div v-if="!isLeaf" class="task-node__toggler" @click="toggleNode">
@@ -154,6 +159,7 @@ const remove = () => {
           @keydown.down.prevent
           @keydown.left.ctrl.prevent
           @keydown.right.ctrl.prevent
+          @keydown.delete.ctrl.prevent
         />
         <span v-else @click="clickContent">{{ taskNode.data.title }} </span>
       </div>
@@ -178,6 +184,10 @@ const remove = () => {
     justify-content: flex-start;
     width: 100%;
     padding: 2px 0;
+
+    &:focus {
+      outline: 1px solid black;
+    }
 
     &--is-inspected {
       background-color: #ccc;

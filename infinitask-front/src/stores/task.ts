@@ -33,8 +33,8 @@ export const useTasksStore = defineStore("tasks", {
   state: (): TaskStoreState => ({
     tasks: new Map(),
     selectedTaskIds: [],
-    inspectedTaskId: null,
-    editingTaskId: null,
+    inspectedTaskId: NO_TASK_ID,
+    editingTaskId: NO_TASK_ID,
   }),
   getters: {
     tasksTree(): TreeNode<Task> | null {
@@ -101,22 +101,24 @@ export const useTasksStore = defineStore("tasks", {
       this.editingTaskId = id;
     },
 
-    async deleteTask(id: number) {
-      if (id !== NEW_TASK_ID) {
+    async deleteTask(id: number | null) {
+      if (id !== ROOT_TASK_ID && id !== NEW_TASK_ID) {
         await api.delete(`/tasks/${id}`);
       }
-      console.log("delete");
 
       this.tasks.delete(id);
     },
 
-    async updateTask(task: Partial<Task>) {
+    async updateTask(task: Partial<Task>, local?: boolean) {
       if (task.id === undefined) {
         throw new Error("Task id is undefined");
       }
 
       const oldTask = this.tasks.get(task.id);
       this.tasks.set(task.id, { ...oldTask, ...task } as Task);
+      if (local) {
+        return;
+      }
       try {
         await api.put(`/tasks/${task.id}`, { ...task });
       } catch (e) {
@@ -141,23 +143,20 @@ export const useTasksStore = defineStore("tasks", {
         await api.post<Task>("/tasks", { boardId, title, parentId })
       ).data;
       this.tasks.set(task.id, task);
-      console.log("add task");
-
       //comming from back there is an id
       return task.id!;
     },
 
-    addTempBlankTask(origin: Task) {
+    addTempBlankTask(parentId: number | null) {
       const task = {
         id: NEW_TASK_ID,
         title: "",
-        parentId: origin.parentId,
-        boardId: origin.boardId,
+        parentId: parentId,
+        boardId: useBoardStore().selectedBoardId,
         completed: false,
         opened: false,
       } as Task;
       this.tasks.set(task.id, task);
-      console.log("addTempBlankTask");
     },
 
     async expandTask(id: number) {

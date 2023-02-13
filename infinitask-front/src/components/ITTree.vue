@@ -2,7 +2,7 @@
 import { useTasksStore } from "@/stores/task";
 import { storeToRefs } from "pinia";
 import ITTreeChildren from "./ITTreeChildren.vue";
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, nextTick } from "vue";
 import { NEW_TASK_ID } from "@/stores/task";
 import { findInTree } from "@/lib/tree";
 
@@ -11,7 +11,6 @@ const { tasksTree } = storeToRefs(tasksStore);
 const tree = ref<HTMLElement | null>(null);
 
 const down = () => {
-  console.log("down");
   const task = findTaskToBaseMouvementOn();
   if (!task) {
     const firstTask = tasksStore.firstTask;
@@ -29,7 +28,6 @@ const down = () => {
   tasksStore.inspectTask(taskBelow.id);
 };
 const up = () => {
-  console.log("up");
   const task = findTaskToBaseMouvementOn();
   if (!task) {
     const lastTask = tasksStore.lastTask;
@@ -41,7 +39,6 @@ const up = () => {
   const taskAbove = tasksStore.taskAbove(task);
   if (!taskAbove) return;
 
-  console.log("taskAbove", taskAbove);
   if (tasksStore.editingTask) {
     tasksStore.editTask(taskAbove.id);
   }
@@ -59,24 +56,24 @@ const findTaskToBaseMouvementOn = () => {
   return task;
 };
 const enter = () => {
-  console.log("enter tree");
   const task = findTaskToBaseMouvementOn();
   if (!task) return;
-  tasksStore.addTempBlankTask(task);
+  tasksStore.addTempBlankTask(task.parentId);
   tasksStore.editTask(NEW_TASK_ID);
+  tasksStore.inspectTask(NEW_TASK_ID);
 };
-const keydown = (e: KeyboardEvent) => {
+const keydown = async (e: KeyboardEvent) => {
   const active = tree.value?.contains(document.activeElement);
-  console.log("active", active);
-  if (!active) return;
-  //TODO verifier qu'on a le focus
+  if (!active) {
+    console.log("not active", document.activeElement);
+    return;
+  }
   if (e.key === "ArrowDown") {
     e.preventDefault();
     down();
   }
   if (e.key === "ArrowUp") {
     e.preventDefault();
-
     up();
   }
   if (e.key === "Enter") {
@@ -113,20 +110,55 @@ const keydown = (e: KeyboardEvent) => {
     if (!task || !tasksTree.value) return;
     e.preventDefault();
 
+    //TODO add a system of local only update
     if (e.shiftKey) {
       const nodeTask = findInTree(tasksTree.value, task.parentId);
       if (!nodeTask) return;
-      //TODO changement recursif de parent
-      tasksStore.updateTask({ ...task, parentId: nodeTask.parent?.id });
-    } else {
-      const taskAbove = tasksStore.taskAbove(task);
-      if (!taskAbove) return;
 
-      if (!taskAbove.opened) {
-        tasksStore.updateTask({ ...taskAbove, opened: true });
+      if (task.id === NEW_TASK_ID) {
+        await tasksStore.deleteTask(task.id);
+        nextTick(async () => {
+          if (!nodeTask.parent) return;
+          await tasksStore.addTempBlankTask(nodeTask.parent.id);
+          tasksStore.editTask(NEW_TASK_ID);
+        });
+        return;
       }
-      tasksStore.updateTask({ ...task, parentId: taskAbove.id });
+      tasksStore.updateTask({ ...task, parentId: nodeTask.parent?.id });
+      nextTick(() => {
+        tasksStore.editTask(task.id);
+      });
+
+      return;
     }
+    const taskAbove = tasksStore.taskAbove(task);
+    if (!taskAbove) return;
+
+    if (!taskAbove.opened) {
+      tasksStore.updateTask({ ...taskAbove, opened: true });
+    }
+
+    if (task.id === NEW_TASK_ID) {
+      await tasksStore.deleteTask(task.id);
+      nextTick(async () => {
+        await tasksStore.addTempBlankTask(taskAbove.id);
+        tasksStore.editTask(NEW_TASK_ID);
+      });
+      return;
+    }
+
+    tasksStore.updateTask({ ...task, parentId: taskAbove.id });
+    nextTick(() => {
+      tasksStore.editTask(task.id);
+    });
+  }
+  if (e.key === "Delete" && e.ctrlKey) {
+    const task = tasksStore.inspectedTask;
+    if (!task) return;
+    const taskAbove = tasksStore.taskAbove(task);
+    tasksStore.deleteTask(task.id);
+    if (!taskAbove) return;
+    tasksStore.inspectTask(taskAbove.id);
   }
 };
 onMounted(() => {

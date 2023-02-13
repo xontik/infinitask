@@ -75,7 +75,6 @@ export default defineComponent({
     };
     const enter = () => {
       if (editing.value !== true) return;
-      console.log("enter");
       updateTask();
     };
     const newChild = () => {
